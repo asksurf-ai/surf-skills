@@ -7,7 +7,7 @@ Claude Code skills for Surf platform development.
 | Skill | Description | For |
 |-------|-------------|-----|
 | `surf-golang-dev` | Go development guide (muninn, argus) | Backend engineers |
-| *(more coming...)* | | |
+| `surf-push-code` | Automate Git workflow (branch, commit, PR, merge) | All engineers |
 
 ## Setup
 
@@ -24,6 +24,9 @@ Create symlinks only for the skills relevant to your role:
 
 ```bash
 cd ~/.claude/skills
+
+# All engineers - enable push workflow skill
+ln -s surf-skills/surf-push-code surf-push-code
 
 # Backend engineers - enable Go skill
 ln -s surf-skills/surf-golang-dev surf-golang-dev
