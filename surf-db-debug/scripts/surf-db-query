@@ -20,6 +20,7 @@ ENV=""
 DB=""
 SQL=""
 FORMAT="table"
+OUTPUT_FILE=""
 WRITE_MODE=false
 TUNNEL_ACTION=""
 
@@ -30,7 +31,8 @@ Usage: surf-db-query [OPTIONS]
 Options:
     --env ENV           Environment (stg, prd) or env:db (stg:main, stg:analytics)
     --sql SQL           SQL query to execute
-    --format FORMAT     Output format: table, csv, json (default: table)
+    --format FORMAT     Output format: table, csv, json, parquet (default: table)
+    --output FILE       Output file path (used with --format parquet)
     --write             Required flag for write operations (INSERT, UPDATE, DELETE, etc.)
     --tunnel ACTION     Tunnel management: start, stop, status
     --check-setup       Verify configuration is complete
@@ -44,6 +46,7 @@ Examples:
     surf-db-query --env stg:analytics --tunnel start    # Specific db
     surf-db-query --env stg --sql "SELECT * FROM users LIMIT 5"
     surf-db-query --env stg:main --sql "UPDATE users SET active=true WHERE id=1" --write
+    surf-db-query --env stg --sql "SELECT * FROM users LIMIT 100" --format parquet --output /tmp/users.parquet
 EOF
 }
 
@@ -477,6 +480,29 @@ execute_query() {
                     psql -h localhost -p "$local_port" -U "$db_user" -d "$db_schema" \
                         -t -c "SELECT json_agg(t) FROM ($sql) t"
                     ;;
+                parquet)
+                    # Delegate to the parquet export helper
+                    local parquet_script
+                    parquet_script="$(cd "$(dirname "$0")/../.." && pwd)/surf-export-parquet/scripts/surf-db-export-parquet"
+                    if [[ ! -f "$parquet_script" ]]; then
+                        parquet_script="${HOME}/.claude/skills/surf-export-parquet/scripts/surf-db-export-parquet"
+                    fi
+                    if [[ ! -f "$parquet_script" ]]; then
+                        log_error "Parquet export script not found"
+                        echo "    Install the surf-export-parquet skill:"
+                        echo "    cd ~/.claude/skills && ln -s surf-skills/surf-export-parquet surf-export-parquet"
+                        return 1
+                    fi
+                    local output_args=()
+                    if [[ -n "$OUTPUT_FILE" ]]; then
+                        output_args=(--output "$OUTPUT_FILE")
+                    fi
+                    uv run --script "$parquet_script" \
+                        --host localhost --port "$local_port" \
+                        --user "$db_user" --password "$password" \
+                        --dbname "$db_schema" --db-type "$db_type" \
+                        --sql "$sql" "${output_args[@]}"
+                    ;;
                 *)
                     psql -h localhost -p "$local_port" -U "$db_user" -d "$db_schema" \
                         -c "$sql"
@@ -500,6 +526,28 @@ if lines:
     rows = [dict(zip(headers, line.split('\t'))) for line in lines[1:]]
     print(json.dumps(rows, indent=2))
 "
+                    ;;
+                parquet)
+                    local parquet_script
+                    parquet_script="$(cd "$(dirname "$0")/../.." && pwd)/surf-export-parquet/scripts/surf-db-export-parquet"
+                    if [[ ! -f "$parquet_script" ]]; then
+                        parquet_script="${HOME}/.claude/skills/surf-export-parquet/scripts/surf-db-export-parquet"
+                    fi
+                    if [[ ! -f "$parquet_script" ]]; then
+                        log_error "Parquet export script not found"
+                        echo "    Install the surf-export-parquet skill:"
+                        echo "    cd ~/.claude/skills && ln -s surf-skills/surf-export-parquet surf-export-parquet"
+                        return 1
+                    fi
+                    local output_args=()
+                    if [[ -n "$OUTPUT_FILE" ]]; then
+                        output_args=(--output "$OUTPUT_FILE")
+                    fi
+                    uv run --script "$parquet_script" \
+                        --host localhost --port "$local_port" \
+                        --user "$db_user" --password "$password" \
+                        --dbname "$db_schema" --db-type "$db_type" \
+                        --sql "$sql" "${output_args[@]}"
                     ;;
                 *)
                     mysql -h localhost -P "$local_port" -u "$db_user" -p"$password" "$db_schema" \
@@ -531,6 +579,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --format)
             FORMAT="$2"
+            shift 2
+            ;;
+        --output)
+            OUTPUT_FILE="$2"
             shift 2
             ;;
         --write)
