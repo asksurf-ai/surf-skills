@@ -481,18 +481,7 @@ execute_query() {
                         -t -c "SELECT json_agg(t) FROM ($sql) t"
                     ;;
                 parquet)
-                    # Delegate to the parquet export helper
-                    local parquet_script
-                    parquet_script="$(cd "$(dirname "$0")/../.." && pwd)/surf-export-parquet/scripts/surf-db-export-parquet"
-                    if [[ ! -f "$parquet_script" ]]; then
-                        parquet_script="${HOME}/.claude/skills/surf-export-parquet/scripts/surf-db-export-parquet"
-                    fi
-                    if [[ ! -f "$parquet_script" ]]; then
-                        log_error "Parquet export script not found"
-                        echo "    Install the surf-export-parquet skill:"
-                        echo "    cd ~/.claude/skills && ln -s surf-skills/surf-export-parquet surf-export-parquet"
-                        return 1
-                    fi
+                    local parquet_script="$(dirname "$0")/surf-db-export-parquet"
                     local output_args=()
                     if [[ -n "$OUTPUT_FILE" ]]; then
                         output_args=(--output "$OUTPUT_FILE")
@@ -528,17 +517,7 @@ if lines:
 "
                     ;;
                 parquet)
-                    local parquet_script
-                    parquet_script="$(cd "$(dirname "$0")/../.." && pwd)/surf-export-parquet/scripts/surf-db-export-parquet"
-                    if [[ ! -f "$parquet_script" ]]; then
-                        parquet_script="${HOME}/.claude/skills/surf-export-parquet/scripts/surf-db-export-parquet"
-                    fi
-                    if [[ ! -f "$parquet_script" ]]; then
-                        log_error "Parquet export script not found"
-                        echo "    Install the surf-export-parquet skill:"
-                        echo "    cd ~/.claude/skills && ln -s surf-skills/surf-export-parquet surf-export-parquet"
-                        return 1
-                    fi
+                    local parquet_script="$(dirname "$0")/surf-db-export-parquet"
                     local output_args=()
                     if [[ -n "$OUTPUT_FILE" ]]; then
                         output_args=(--output "$OUTPUT_FILE")

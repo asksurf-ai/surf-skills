@@ -10,7 +10,6 @@ Claude Code skills for Surf platform development.
 | `surf-push-code` | Automate Git workflow (branch, commit, PR, merge) | All engineers |
 | `surf-db-debug` | Query staging/production databases via SSH bastion | All engineers |
 | `langfuse-trace-analysis` | Analyze Langfuse traces for debugging agent execution | AI/Agent engineers |
-| `surf-export-parquet` | Export database query results to Parquet format | Data engineers |
 
 ## Setup
 
@@ -39,9 +38,6 @@ ln -s surf-skills/surf-db-debug surf-db-debug
 
 # AI/Agent engineers - enable trace analysis skill
 ln -s surf-skills/langfuse-trace-analysis langfuse-trace-analysis
-
-# Data engineers - enable parquet export (requires surf-db-debug)
-ln -s surf-skills/surf-export-parquet surf-export-parquet
 
 # Frontend engineers - enable frontend skill (coming soon)
 # ln -s surf-skills/surf-frontend-dev surf-frontend-dev

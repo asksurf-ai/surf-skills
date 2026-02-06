@@ -46,7 +46,7 @@ Use the full path: `~/.claude/skills/surf-db-debug/scripts/surf-db-query`
 ~/.claude/skills/surf-db-debug/scripts/surf-db-query --env stg --sql "SELECT ..." --format csv
 ~/.claude/skills/surf-db-debug/scripts/surf-db-query --env stg --sql "SELECT ..." --format json
 
-# Export to parquet (requires surf-export-parquet skill)
+# Export to parquet (requires uv — DuckDB auto-installed on first use)
 ~/.claude/skills/surf-db-debug/scripts/surf-db-query --env stg --sql "SELECT ..." --format parquet
 ~/.claude/skills/surf-db-debug/scripts/surf-db-query --env stg --sql "SELECT ..." --format parquet --output /tmp/data.parquet
 ```
