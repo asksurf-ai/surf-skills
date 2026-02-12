@@ -9,7 +9,7 @@ Claude Code skills for Surf platform development.
 | `surf-dev-golang` | Go development guide (muninn, argus) | Backend engineers |
 | `surf-dev-push-code` | Automate Git workflow (branch, commit, PR, merge) | All engineers |
 | `surf-data-clickhouse` | Query ClickHouse Cloud for blockchain data and product analytics | Data/Analytics engineers |
-| `surf-data-db-debug` | Query staging/production databases via SSH bastion | All engineers |
+| `surf-data-db` | Query staging/production databases via SSH bastion | All engineers |
 | `surf-data-langfuse-trace` | Analyze Langfuse traces for debugging agent execution | AI/Agent engineers |
 
 ## Setup
@@ -18,16 +18,16 @@ Claude Code skills for Surf platform development.
 npx skills add cyberconnecthq/surf-skills
 ```
 
-### Additional Setup for surf-data-db-debug
+### Additional Setup for surf-data-db
 
 The database debugging skill requires a private configuration file with your connection details. This file is **never committed to git**.
 
 ```bash
 # Run setup check - Claude will guide you through configuration
-~/.claude/skills/surf-data-db-debug/scripts/surf-db-query --check-setup
+~/.claude/skills/surf-data-db/scripts/surf-db-query --check-setup
 ```
 
-See `surf-data-db-debug/references/setup.md` for detailed setup instructions.
+See `surf-data-db/references/setup.md` for detailed setup instructions.
 
 ## Contributing Learnings
 

@@ -21,7 +21,7 @@ surf-skills/
 │   ├── SKILL.md
 │   ├── references/
 │   └── scripts/
-├── surf-data-db-debug/           # Database debugging skill
+├── surf-data-db/           # Database debugging skill
 │   ├── SKILL.md
 │   ├── references/
 │   └── scripts/

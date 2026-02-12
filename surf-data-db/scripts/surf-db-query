@@ -6,6 +6,7 @@
 set -euo pipefail
 
 CONFIG_FILE="${HOME}/.config/surf-db/config.json"
+CONFIG_JSON=""  # In-memory config content (never written to disk)
 TUNNEL_PID_DIR="${HOME}/.config/surf-db/tunnels"
 SOCKET_DIR="${HOME}/.ssh/sockets"
 
@@ -64,18 +65,14 @@ command_exists() {
     command -v "$1" &> /dev/null
 }
 
-# Parse JSON value
+# Parse JSON value from in-memory config
 # Usage: json_get "environments.stg.bastion.host"
 json_get() {
     local path="$1"
-    python3 << EOF
-import json
-import sys
-
-with open("$CONFIG_FILE", 'r') as f:
-    config = json.load(f)
-
-keys = "$path".split('.')
+    python3 -c "
+import json, os, sys
+config = json.loads(os.environ['CONFIG_JSON'])
+keys = '$path'.split('.')
 value = config
 try:
     for key in keys:
@@ -84,20 +81,29 @@ try:
         print(value)
 except (KeyError, TypeError):
     sys.exit(1)
-EOF
+"
 }
 
-# Try loading config from AWS Secrets Manager (falls back silently)
+# Try loading config from AWS Secrets Manager into memory (falls back silently)
 load_config_from_aws() {
     command_exists aws || return 0
-    local secret
-    secret=$(timeout 5 aws secretsmanager get-secret-value \
+    CONFIG_JSON=$(timeout 5 aws secretsmanager get-secret-value \
         --secret-id "postgres/prd-odin/bot_ro" \
-        --query "SecretString" --output text 2>/dev/null) || return 0
-    local tmp_config
-    tmp_config=$(mktemp)
-    echo "$secret" > "$tmp_config"
-    CONFIG_FILE="$tmp_config"
+        --query "SecretString" --output text 2>/dev/null) || CONFIG_JSON=""
+}
+
+# Ensure config is loaded into CONFIG_JSON (AWS first, then local file)
+ensure_config_loaded() {
+    if [[ -n "$CONFIG_JSON" ]]; then
+        export CONFIG_JSON
+        return 0
+    fi
+    if [[ -f "$CONFIG_FILE" ]]; then
+        CONFIG_JSON=$(<"$CONFIG_FILE")
+        export CONFIG_JSON
+        return 0
+    fi
+    return 1
 }
 
 # Check if environment has bastion config
@@ -129,14 +135,13 @@ get_db_name() {
             echo "$default_db"
         else
             # Use first database as default
-            python3 << EOF
-import json
-with open("$CONFIG_FILE", 'r') as f:
-    config = json.load(f)
+            python3 -c "
+import json, os
+config = json.loads(os.environ['CONFIG_JSON'])
 dbs = config.get('environments', {}).get('$ENV', {}).get('databases', {})
 if dbs:
     print(list(dbs.keys())[0])
-EOF
+"
         fi
     fi
 }
@@ -144,19 +149,18 @@ EOF
 # List databases for an environment
 list_databases() {
     echo "Databases for '$ENV':"
-    python3 << EOF
-import json
-with open("$CONFIG_FILE", 'r') as f:
-    config = json.load(f)
+    python3 -c "
+import json, os
+config = json.loads(os.environ['CONFIG_JSON'])
 env_config = config.get('environments', {}).get('$ENV', {})
 default_db = env_config.get('default_db', '')
 dbs = env_config.get('databases', {})
 for name, db in dbs.items():
-    marker = " (default)" if name == default_db else ""
+    marker = ' (default)' if name == default_db else ''
     db_type = db.get('type', 'unknown')
     db_name = db.get('name', 'unknown')
-    print(f"    {name}: {db_type} - {db_name}{marker}")
-EOF
+    print(f'    {name}: {db_type} - {db_name}{marker}')
+"
 }
 
 # Expand tilde in path
@@ -189,15 +193,6 @@ check_setup() {
     # Try AWS Secrets Manager first
     load_config_from_aws
 
-    # Check config file exists
-    if [[ -f "$CONFIG_FILE" ]]; then
-        log_info "Config file exists: $CONFIG_FILE"
-    else
-        log_error "Config file not found: $CONFIG_FILE"
-        echo "    Create it by following: ~/.claude/skills/surf-data-db-debug/references/setup.md"
-        errors=$((errors + 1))
-    fi
-
     # Check AWS CLI
     if command_exists aws; then
         log_info "AWS CLI available (Secrets Manager lookup enabled)"
@@ -205,7 +200,23 @@ check_setup() {
         log_warn "AWS CLI not found (Secrets Manager lookup disabled, using local config)"
     fi
 
-    # Check config file permissions
+    # Check config source
+    if [[ -n "$CONFIG_JSON" ]]; then
+        log_info "Config loaded from AWS Secrets Manager (in-memory)"
+    elif [[ -f "$CONFIG_FILE" ]]; then
+        log_info "Config file exists: $CONFIG_FILE"
+        CONFIG_JSON=$(<"$CONFIG_FILE")
+    else
+        log_error "No config available (AWS Secrets Manager failed and no local file)"
+        echo "    Create it by following: ~/.claude/skills/surf-data-db/references/setup.md"
+        errors=$((errors + 1))
+    fi
+
+    if [[ -n "$CONFIG_JSON" ]]; then
+        export CONFIG_JSON
+    fi
+
+    # Check config file permissions (only relevant for local config)
     if [[ -f "$CONFIG_FILE" ]]; then
         local perms=$(stat -f "%Lp" "$CONFIG_FILE" 2>/dev/null || stat -c "%a" "$CONFIG_FILE" 2>/dev/null)
         if [[ "$perms" == "600" ]]; then
@@ -237,43 +248,32 @@ check_setup() {
         log_warn "MySQL client not found"
     fi
 
-    # Check environments if config exists
-    if [[ -f "$CONFIG_FILE" ]]; then
-        python3 << EOF
-import json
-import os
-import sys
-
-config_file = "$CONFIG_FILE"
-with open(config_file, 'r') as f:
-    config = json.load(f)
-
+    # Check environments if config is loaded
+    if [[ -n "$CONFIG_JSON" ]]; then
+        python3 -c "
+import json, os, sys
+config = json.loads(os.environ['CONFIG_JSON'])
 errors = 0
 for env_name, env_config in config.get('environments', {}).items():
     has_bastion = bool(env_config.get('bastion', {}).get('host'))
-    mode = "bastion" if has_bastion else "direct"
-    print(f"\033[0;32m✓\033[0m Environment '{env_name}' configured ({mode})")
-
-    # Check SSH key only if bastion is configured
+    mode = 'bastion' if has_bastion else 'direct'
+    print(f'\033[0;32m✓\033[0m Environment \'{env_name}\' configured ({mode})')
     if has_bastion:
         key_path = env_config.get('bastion', {}).get('key_path', '')
         if key_path:
             key_path = os.path.expanduser(key_path)
             if os.path.isfile(key_path):
-                print(f"\033[0;32m✓\033[0m   SSH key exists: {key_path}")
+                print(f'\033[0;32m✓\033[0m   SSH key exists: {key_path}')
             else:
-                print(f"\033[0;31m✗\033[0m   SSH key not found: {key_path}")
+                print(f'\033[0;31m✗\033[0m   SSH key not found: {key_path}')
                 errors += 1
-
-    # List databases
     dbs = env_config.get('databases', {})
     default_db = env_config.get('default_db', '')
     for db_name in dbs.keys():
-        marker = " (default)" if db_name == default_db else ""
-        print(f"      Database: {db_name}{marker}")
-
+        marker = ' (default)' if db_name == default_db else ''
+        print(f'      Database: {db_name}{marker}')
 sys.exit(errors)
-EOF
+"
         errors=$((errors + $?))
     fi
 
@@ -598,8 +598,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Try AWS Secrets Manager before falling back to local config
+# Load config: AWS Secrets Manager first, then local file
 load_config_from_aws
+ensure_config_loaded
 
 # Validate environment is specified for most operations
 if [[ -z "$ENV" ]] && [[ -z "$TUNNEL_ACTION" ]] && [[ -z "$SQL" ]] && [[ "$LIST_DBS" != "true" ]]; then
@@ -612,13 +613,12 @@ if [[ -n "$ENV" ]]; then
     if ! json_get "environments.${ENV}.databases" &>/dev/null; then
         log_error "Environment '$ENV' not found in config"
         echo "Available environments:"
-        python3 << EOF
-import json
-with open("$CONFIG_FILE", 'r') as f:
-    config = json.load(f)
+        python3 -c "
+import json, os
+config = json.loads(os.environ['CONFIG_JSON'])
 for env in config.get('environments', {}).keys():
-    print(f"    - {env}")
-EOF
+    print(f'    - {env}')
+"
         exit 1
     fi
 
