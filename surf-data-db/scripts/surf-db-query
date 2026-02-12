@@ -208,7 +208,7 @@ check_setup() {
         CONFIG_JSON=$(<"$CONFIG_FILE")
     else
         log_error "No config available (AWS Secrets Manager failed and no local file)"
-        echo "    Create it by following: ~/.claude/skills/surf-data-db/references/setup.md"
+        echo "    Create it by following the setup.md in this skill's references/ directory"
         errors=$((errors + 1))
     fi
 

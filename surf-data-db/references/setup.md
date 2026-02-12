@@ -149,7 +149,7 @@ Host *
 ## Step 4: Verify Setup
 
 ```bash
-~/.claude/skills/surf-data-db/scripts/surf-db-query --check-setup
+SKILL_DIR/scripts/surf-db-query --check-setup
 ```
 
 Expected output:
@@ -175,19 +175,19 @@ Setup complete!
 
 ```bash
 # List databases for an environment
-~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg --list-dbs
+SKILL_DIR/scripts/surf-db-query --env stg --list-dbs
 
 # Start tunnel for default database
-~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg --tunnel start
+SKILL_DIR/scripts/surf-db-query --env stg --tunnel start
 
 # Or start tunnel for specific database
-~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg:analytics --tunnel start
+SKILL_DIR/scripts/surf-db-query --env stg:analytics --tunnel start
 
 # Test query
-~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg --sql "SELECT 1"
+SKILL_DIR/scripts/surf-db-query --env stg --sql "SELECT 1"
 
 # Query specific database
-~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg:analytics --sql "SELECT 1"
+SKILL_DIR/scripts/surf-db-query --env stg:analytics --sql "SELECT 1"
 ```
 
 ## Usage Examples

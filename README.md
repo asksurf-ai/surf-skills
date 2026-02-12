@@ -11,6 +11,7 @@ Claude Code skills for Surf platform development.
 | `surf-data-clickhouse` | Query ClickHouse Cloud for blockchain data and product analytics | Data/Analytics engineers |
 | `surf-data-db` | Query staging/production databases via SSH bastion | All engineers |
 | `surf-data-langfuse-trace` | Analyze Langfuse traces for debugging agent execution | AI/Agent engineers |
+| `surf-op-dev-progress` | Daily team progress report from GitHub commits | Team leads |
 
 ## Setup
 

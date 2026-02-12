@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This is a Claude Code skills repository for Surf platform development. Skills are specialized knowledge modules organized by category (`surf-dev-*` for development, `surf-data-*` for data/analytics).
+This is a Claude Code skills repository for Surf platform development. Skills are specialized knowledge modules organized by category (`surf-dev-*` for development, `surf-data-*` for data/analytics, `surf-op-*` for operations).
 
 ## Repository Structure
 
@@ -29,22 +29,28 @@ surf-skills/
 │   ├── SKILL.md
 │   ├── references/
 │   └── fetch_trace.py
+├── surf-op-dev-progress/         # Daily team progress report skill
+│   ├── SKILL.md
+│   ├── references/
+│   └── scripts/
 └── README.md
 ```
 
-## Adding New Skills
+## Adding or Modifying Skills
 
-1. Create a directory with category prefix: `surf-dev-<name>/` or `surf-data-<name>/`
-2. Add `SKILL.md` with YAML frontmatter:
-   ```yaml
-   ---
-   name: surf-<category>-<skill-name>
-   description: <description for when to activate this skill>
-   ---
-   ```
-3. Add `references/` directory for detailed documentation
-4. Add `learnings.md` for team-shared learnings
-5. Update root README.md
+**Always use the `skill-creator` skill** (at `~/.agents/skills/skill-creator/`) when adding new skills or making changes to existing ones. It enforces best practices:
+
+- **Concise SKILL.md** — only add what Claude doesn't already know; challenge every token
+- **Progressive disclosure** — metadata (~100 words) → SKILL.md body (<5k words) → `references/` (unlimited)
+- **Description is the trigger** — include WHAT the skill does and specific WHEN/WHERE triggers. Do NOT add "When to Use" sections in the body.
+- **Validate** before committing: `python3 ~/.agents/skills/skill-creator/scripts/quick_validate.py <path/to/skill-folder>`
+
+Steps:
+1. Create a directory with category prefix: `surf-dev-<name>/`, `surf-data-<name>/`, or `surf-op-<name>/`
+2. Add `SKILL.md` with YAML frontmatter (name: kebab-case, max 64 chars)
+3. Move detailed docs to `references/` — link from SKILL.md with clear guidance on when to read
+4. Add `learnings.md` for team-shared learnings if applicable
+5. Update root README.md and CLAUDE.md structure tree
 
 ## Self-Learning Protocol
 

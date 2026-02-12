@@ -5,6 +5,8 @@ description: Use when debugging database issues, exploring data, or running SQL 
 
 # Database Debugging Skill
 
+> **SKILL_DIR**: Replace with the base directory provided at skill load time (e.g. "Base directory for this skill: /path/to/skill").
+
 Query staging and production databases for debugging. Config is auto-loaded from AWS Secrets Manager if the `aws` CLI is configured (secret: `postgres/prd-odin/bot_ro`), otherwise falls back to `~/.config/surf-db/config.json`. SSH tunnels are only used when a `bastion` key is present in the config; otherwise the tool connects directly.
 
 ## First-Time Setup Check
@@ -12,11 +14,11 @@ Query staging and production databases for debugging. Config is auto-loaded from
 **IMPORTANT**: Before using any database commands, ALWAYS check if the tool is configured:
 
 ```bash
-~/.claude/skills/surf-data-db/scripts/surf-db-query --check-setup
+SKILL_DIR/scripts/surf-db-query --check-setup
 ```
 
 If setup is not complete, guide the user through setup:
-1. Direct them to read: `~/.claude/skills/surf-data-db/references/setup.md`
+1. Direct them to read: `SKILL_DIR/references/setup.md`
 2. Help them create the config file at `~/.config/surf-db/config.json`
 3. Verify setup completes successfully
 
@@ -24,27 +26,27 @@ Do NOT proceed with any database queries until setup is confirmed.
 
 ## Available Commands
 
-Use the full path: `~/.claude/skills/surf-data-db/scripts/surf-db-query`
+Use the full path: `SKILL_DIR/scripts/surf-db-query`
 
 ### List Databases
 
 ```bash
-~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg --list-dbs
+SKILL_DIR/scripts/surf-db-query --env stg --list-dbs
 ```
 
 ### Query Database
 
 ```bash
 # Query default database
-~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg --sql "SELECT * FROM users WHERE id = 123"
+SKILL_DIR/scripts/surf-db-query --env stg --sql "SELECT * FROM users WHERE id = 123"
 
 # Query specific database (env:db format)
-~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg:analytics --sql "SELECT * FROM events LIMIT 10"
-~/.claude/skills/surf-data-db/scripts/surf-db-query --env prd:main --sql "EXPLAIN ANALYZE SELECT ..."
+SKILL_DIR/scripts/surf-db-query --env stg:analytics --sql "SELECT * FROM events LIMIT 10"
+SKILL_DIR/scripts/surf-db-query --env prd:main --sql "EXPLAIN ANALYZE SELECT ..."
 
 # With output format
-~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg --sql "SELECT ..." --format csv
-~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg --sql "SELECT ..." --format json
+SKILL_DIR/scripts/surf-db-query --env stg --sql "SELECT ..." --format csv
+SKILL_DIR/scripts/surf-db-query --env stg --sql "SELECT ..." --format json
 ```
 
 ### Tunnel Management (bastion configs only)
@@ -53,14 +55,14 @@ Tunnels are only needed when the config has a `bastion` key. Direct-connect conf
 
 ```bash
 # Start persistent tunnel (recommended at session start)
-~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg --tunnel start
-~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg:analytics --tunnel start
+SKILL_DIR/scripts/surf-db-query --env stg --tunnel start
+SKILL_DIR/scripts/surf-db-query --env stg:analytics --tunnel start
 
 # Check tunnel status
-~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg --tunnel status
+SKILL_DIR/scripts/surf-db-query --env stg --tunnel status
 
 # Stop tunnel when done (optional - auto-closes after 10min idle)
-~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg --tunnel stop
+SKILL_DIR/scripts/surf-db-query --env stg --tunnel stop
 ```
 
 ## Safety Rules - MUST FOLLOW
@@ -90,7 +92,7 @@ You may execute these without user confirmation:
 5. Only then execute with `--write` flag:
 
 ```bash
-~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg:main --sql "UPDATE users SET status = 'active' WHERE id = 123" --write
+SKILL_DIR/scripts/surf-db-query --env stg:main --sql "UPDATE users SET status = 'active' WHERE id = 123" --write
 ```
 
 The `--write` flag is REQUIRED for any write operation. The tool will refuse to execute writes without it.
@@ -106,33 +108,33 @@ For **production** (`--env prd` or `--env prd:*`):
 
 1. **Check available databases**:
    ```bash
-   ~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg --list-dbs
+   SKILL_DIR/scripts/surf-db-query --env stg --list-dbs
    ```
 
 2. **Start tunnel** (bastion configs only) for faster repeated queries:
    ```bash
-   ~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg --tunnel start
+   SKILL_DIR/scripts/surf-db-query --env stg --tunnel start
    ```
 
 3. **Explore schema**:
    ```bash
    # PostgreSQL
-   ~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg --sql "\\dt"
-   ~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg --sql "\\d table_name"
+   SKILL_DIR/scripts/surf-db-query --env stg --sql "\\dt"
+   SKILL_DIR/scripts/surf-db-query --env stg --sql "\\d table_name"
 
    # MySQL
-   ~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg:events --sql "SHOW TABLES"
-   ~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg:events --sql "DESCRIBE table_name"
+   SKILL_DIR/scripts/surf-db-query --env stg:events --sql "SHOW TABLES"
+   SKILL_DIR/scripts/surf-db-query --env stg:events --sql "DESCRIBE table_name"
    ```
 
 4. **Investigate data**:
    ```bash
-   ~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg --sql "SELECT * FROM orders WHERE user_id = 123 ORDER BY created_at DESC LIMIT 10"
+   SKILL_DIR/scripts/surf-db-query --env stg --sql "SELECT * FROM orders WHERE user_id = 123 ORDER BY created_at DESC LIMIT 10"
    ```
 
 5. **Check query performance**:
    ```bash
-   ~/.claude/skills/surf-data-db/scripts/surf-db-query --env stg --sql "EXPLAIN ANALYZE SELECT ..."
+   SKILL_DIR/scripts/surf-db-query --env stg --sql "EXPLAIN ANALYZE SELECT ..."
    ```
 
 ## Error Handling

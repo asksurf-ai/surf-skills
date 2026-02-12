@@ -5,6 +5,8 @@ description: Query ClickHouse Cloud databases for blockchain data (surf) and pro
 
 # ClickHouse Query Skill
 
+> **SKILL_DIR**: Replace with the base directory provided at skill load time (e.g. "Base directory for this skill: /path/to/skill").
+
 Query two ClickHouse Cloud instances via read-only access.
 
 ## First-Time Setup Check
@@ -12,7 +14,7 @@ Query two ClickHouse Cloud instances via read-only access.
 Before running queries, verify the script can reach AWS Secrets Manager:
 
 ```bash
-~/.agents/skills/surf-data-clickhouse/scripts/ch-query --check-setup
+SKILL_DIR/scripts/ch-query --check-setup
 ```
 
 Requirements:
@@ -28,40 +30,40 @@ Requirements:
 
 ## Available Commands
 
-Use the full path: `~/.agents/skills/surf-data-clickhouse/scripts/ch-query`
+Use the full path: `SKILL_DIR/scripts/ch-query`
 
 ### Query
 
 ```bash
 # Query surf (blockchain data)
-~/.agents/skills/surf-data-clickhouse/scripts/ch-query --instance surf --sql "SELECT * FROM ethereum.transactions LIMIT 10"
+SKILL_DIR/scripts/ch-query --instance surf --sql "SELECT * FROM ethereum.transactions LIMIT 10"
 
 # Query surf-analytics (product data)
-~/.agents/skills/surf-data-clickhouse/scripts/ch-query --instance analytics --sql "SELECT count() FROM default.users"
+SKILL_DIR/scripts/ch-query --instance analytics --sql "SELECT count() FROM default.users"
 
 # With specific database
-~/.agents/skills/surf-data-clickhouse/scripts/ch-query --instance surf --db prices --sql "SELECT * FROM prices_coingecko_hour WHERE symbol = 'ETH' ORDER BY hour DESC LIMIT 10"
+SKILL_DIR/scripts/ch-query --instance surf --db prices --sql "SELECT * FROM prices_coingecko_hour WHERE symbol = 'ETH' ORDER BY hour DESC LIMIT 10"
 
 # Output formats
-~/.agents/skills/surf-data-clickhouse/scripts/ch-query --instance analytics --sql "SELECT ..." --format TSV
-~/.agents/skills/surf-data-clickhouse/scripts/ch-query --instance analytics --sql "SELECT ..." --format JSON
-~/.agents/skills/surf-data-clickhouse/scripts/ch-query --instance analytics --sql "SELECT ..." --format CSV
+SKILL_DIR/scripts/ch-query --instance analytics --sql "SELECT ..." --format TSV
+SKILL_DIR/scripts/ch-query --instance analytics --sql "SELECT ..." --format JSON
+SKILL_DIR/scripts/ch-query --instance analytics --sql "SELECT ..." --format CSV
 ```
 
 ### Explore Schema
 
 ```bash
 # List databases
-~/.agents/skills/surf-data-clickhouse/scripts/ch-query --instance surf --sql "SHOW DATABASES"
+SKILL_DIR/scripts/ch-query --instance surf --sql "SHOW DATABASES"
 
 # List tables in a database
-~/.agents/skills/surf-data-clickhouse/scripts/ch-query --instance surf --db ethereum --sql "SHOW TABLES"
+SKILL_DIR/scripts/ch-query --instance surf --db ethereum --sql "SHOW TABLES"
 
 # Describe table
-~/.agents/skills/surf-data-clickhouse/scripts/ch-query --instance surf --sql "DESCRIBE TABLE ethereum.transactions"
+SKILL_DIR/scripts/ch-query --instance surf --sql "DESCRIBE TABLE ethereum.transactions"
 
 # Table sizes
-~/.agents/skills/surf-data-clickhouse/scripts/ch-query --instance analytics --sql "SELECT name, total_rows, formatReadableSize(total_bytes) as size FROM system.tables WHERE database = 'default' ORDER BY total_rows DESC"
+SKILL_DIR/scripts/ch-query --instance analytics --sql "SELECT name, total_rows, formatReadableSize(total_bytes) as size FROM system.tables WHERE database = 'default' ORDER BY total_rows DESC"
 ```
 
 ## Safety Rules

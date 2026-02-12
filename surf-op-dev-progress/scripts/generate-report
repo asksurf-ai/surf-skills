@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Team Progress Report Generator
+# Cutoff: 9am China Time (CST, UTC+8) = 01:00 UTC
+# Window: yesterday 01:00 UTC → today 01:00 UTC
+# Covers ALL branches (uses GitHub Search Commits API), deduped by SHA
+
+ORG="cyberconnecthq"
+BOT_FILTER="Future Bot|Surf Backend Bot|dependabot"
+
+# Parse args
+REPORT_DATE=""
+OUTPUT_DIR="/tmp"
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --date) REPORT_DATE="$2"; shift 2 ;;
+    --output) OUTPUT_DIR="$2"; shift 2 ;;
+    *) echo "Unknown option: $1"; exit 1 ;;
+  esac
+done
+
+if [[ -z "$REPORT_DATE" ]]; then
+  REPORT_DATE=$(TZ=Asia/Shanghai date +%Y-%m-%d)
+fi
+
+# Calculate UTC window: (report_date - 1d) 01:00 UTC → report_date 01:00 UTC
+if [[ "$(uname)" == "Darwin" ]]; then
+  UNTIL_EPOCH=$(TZ=UTC date -j -f "%Y-%m-%d %H:%M:%S" "${REPORT_DATE} 01:00:00" +%s)
+  SINCE_EPOCH=$((UNTIL_EPOCH - 86400))
+  SINCE=$(date -u -r "$SINCE_EPOCH" +%Y-%m-%dT%H:%M:%SZ)
+  UNTIL=$(date -u -r "$UNTIL_EPOCH" +%Y-%m-%dT%H:%M:%SZ)
+else
+  SINCE=$(date -u -d "${REPORT_DATE} 01:00:00 UTC - 1 day" +%Y-%m-%dT%H:%M:%SZ)
+  UNTIL=$(date -u -d "${REPORT_DATE} 01:00:00 UTC" +%Y-%m-%dT%H:%M:%SZ)
+fi
+
+echo "Report: ${REPORT_DATE}" >&2
+echo "Window: ${SINCE} → ${UNTIL} (9am–9am CST)" >&2
+
+# Step 1: Search commits across ALL branches using GitHub Search API
+# Dedup by SHA to avoid counting merged commits twice
+TMPFILE=$(mktemp)
+SEEN_SHAS=$(mktemp)
+
+PAGE=1
+while true; do
+  RESULT=$(gh api "search/commits?q=org:${ORG}+committer-date:${SINCE}..${UNTIL}&per_page=100&page=${PAGE}&sort=committer-date" \
+    --jq '.items[] | "\(.repository.name)\t\(.commit.author.name)\t\(.sha)\t\(.commit.message | split("\n")[0])"' 2>/dev/null) || break
+
+  if [[ -z "$RESULT" ]]; then
+    break
+  fi
+
+  # Dedup by SHA
+  while IFS= read -r line; do
+    SHA=$(echo "$line" | cut -f3)
+    if ! grep -q "^${SHA}$" "$SEEN_SHAS" 2>/dev/null; then
+      echo "$SHA" >> "$SEEN_SHAS"
+      # Output without SHA column: repo\tauthor\tmessage
+      echo "$line" | awk -F'\t' '{print $1"\t"$2"\t"$4}' >> "$TMPFILE"
+    fi
+  done <<< "$RESULT"
+
+  # Check if there are more pages
+  COUNT=$(echo "$RESULT" | wc -l | tr -d ' ')
+  if [[ "$COUNT" -lt 100 ]]; then
+    break
+  fi
+  PAGE=$((PAGE + 1))
+done
+
+rm -f "$SEEN_SHAS"
+
+# Filter out bots
+COMMITS=$(grep -vE "$BOT_FILTER" "$TMPFILE" || true)
+rm -f "$TMPFILE"
+
+if [[ -z "$COMMITS" ]]; then
+  echo "No human commits in this window." >&2
+  exit 0
+fi
+
+TOTAL=$(echo "$COMMITS" | wc -l | tr -d ' ')
+echo "Total commits: ${TOTAL}" >&2
+
+# Step 2: Generate markdown
+OUTFILE="${OUTPUT_DIR}/team-progress-${REPORT_DATE}.md"
+
+{
+  echo "# Team Progress — ${REPORT_DATE}"
+  echo ""
+  echo "> Window: ${SINCE} → ${UNTIL} (9am–9am CST)"
+  echo ""
+
+  # --- By Repo ---
+  echo "## By Repo"
+  echo ""
+  echo "| Repo | Contributors | Commits |"
+  echo "|------|-------------|---------|"
+
+  echo "$COMMITS" | cut -f1 | sort -u | while read -r repo; do
+    repo_commits=$(echo "$COMMITS" | awk -F'\t' -v r="$repo" '$1 == r')
+
+    # Contributors with counts
+    contributors=$(echo "$repo_commits" | cut -f2 | sort | uniq -c | sort -rn | \
+      awk '{name=""; for(i=2;i<=NF;i++) name=name (i>2?" ":"") $i; printf "%s (%d), ", name, $1}' | \
+      sed 's/, $//')
+
+    # Commit messages
+    messages=$(echo "$repo_commits" | cut -f3 | sed 's/|/∣/g' | \
+      awk '{printf "%s; ", $0}' | sed 's/; $//')
+
+    echo "| ${repo} | ${contributors} | ${messages} |"
+  done
+
+  echo ""
+
+  # --- By Person ---
+  echo "## By Person"
+  echo ""
+  echo "| Person | Repos | Commits |"
+  echo "|--------|-------|---------|"
+
+  echo "$COMMITS" | cut -f2 | sort | uniq -c | sort -rn | while read -r cnt name_rest; do
+    name="$name_rest"
+    person_commits=$(echo "$COMMITS" | awk -F'\t' -v n="$name" '$2 == n')
+
+    # Repos with counts
+    repos=$(echo "$person_commits" | cut -f1 | sort | uniq -c | sort -rn | \
+      awk '{printf "%s (%d), ", $2, $1}' | sed 's/, $//')
+
+    # Commit messages
+    messages=$(echo "$person_commits" | cut -f3 | sed 's/|/∣/g' | \
+      awk '{printf "%s; ", $0}' | sed 's/; $//')
+
+    echo "| ${name} | ${repos} | ${messages} |"
+  done
+
+} > "$OUTFILE"
+
+echo "Written to: ${OUTFILE}" >&2
+echo "$OUTFILE"
