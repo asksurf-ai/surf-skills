@@ -5,7 +5,7 @@ description: Query ClickHouse Cloud databases for blockchain data (surf) and pro
 
 # ClickHouse Query Skill
 
-> **SKILL_DIR**: Replace with the base directory provided at skill load time (e.g. "Base directory for this skill: /path/to/skill").
+All paths below are relative to this skill's base directory. Resolve to absolute paths before executing.
 
 Query two ClickHouse Cloud instances via read-only access.
 
@@ -14,7 +14,7 @@ Query two ClickHouse Cloud instances via read-only access.
 Before running queries, verify the script can reach AWS Secrets Manager:
 
 ```bash
-SKILL_DIR/scripts/ch-query --check-setup
+scripts/ch-query --check-setup
 ```
 
 Requirements:
@@ -30,40 +30,40 @@ Requirements:
 
 ## Available Commands
 
-Use the full path: `SKILL_DIR/scripts/ch-query`
+Script: `scripts/ch-query`
 
 ### Query
 
 ```bash
 # Query surf (blockchain data)
-SKILL_DIR/scripts/ch-query --instance surf --sql "SELECT * FROM ethereum.transactions LIMIT 10"
+scripts/ch-query --instance surf --sql "SELECT * FROM ethereum.transactions LIMIT 10"
 
 # Query surf-analytics (product data)
-SKILL_DIR/scripts/ch-query --instance analytics --sql "SELECT count() FROM default.users"
+scripts/ch-query --instance analytics --sql "SELECT count() FROM default.users"
 
 # With specific database
-SKILL_DIR/scripts/ch-query --instance surf --db prices --sql "SELECT * FROM prices_coingecko_hour WHERE symbol = 'ETH' ORDER BY hour DESC LIMIT 10"
+scripts/ch-query --instance surf --db prices --sql "SELECT * FROM prices_coingecko_hour WHERE symbol = 'ETH' ORDER BY hour DESC LIMIT 10"
 
 # Output formats
-SKILL_DIR/scripts/ch-query --instance analytics --sql "SELECT ..." --format TSV
-SKILL_DIR/scripts/ch-query --instance analytics --sql "SELECT ..." --format JSON
-SKILL_DIR/scripts/ch-query --instance analytics --sql "SELECT ..." --format CSV
+scripts/ch-query --instance analytics --sql "SELECT ..." --format TSV
+scripts/ch-query --instance analytics --sql "SELECT ..." --format JSON
+scripts/ch-query --instance analytics --sql "SELECT ..." --format CSV
 ```
 
 ### Explore Schema
 
 ```bash
 # List databases
-SKILL_DIR/scripts/ch-query --instance surf --sql "SHOW DATABASES"
+scripts/ch-query --instance surf --sql "SHOW DATABASES"
 
 # List tables in a database
-SKILL_DIR/scripts/ch-query --instance surf --db ethereum --sql "SHOW TABLES"
+scripts/ch-query --instance surf --db ethereum --sql "SHOW TABLES"
 
 # Describe table
-SKILL_DIR/scripts/ch-query --instance surf --sql "DESCRIBE TABLE ethereum.transactions"
+scripts/ch-query --instance surf --sql "DESCRIBE TABLE ethereum.transactions"
 
 # Table sizes
-SKILL_DIR/scripts/ch-query --instance analytics --sql "SELECT name, total_rows, formatReadableSize(total_bytes) as size FROM system.tables WHERE database = 'default' ORDER BY total_rows DESC"
+scripts/ch-query --instance analytics --sql "SELECT name, total_rows, formatReadableSize(total_bytes) as size FROM system.tables WHERE database = 'default' ORDER BY total_rows DESC"
 ```
 
 ## Safety Rules

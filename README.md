@@ -25,7 +25,7 @@ The database debugging skill requires a private configuration file with your con
 
 ```bash
 # Run setup check - Claude will guide you through configuration
-~/.claude/skills/surf-data-db/scripts/surf-db-query --check-setup
+surf-data-db/scripts/surf-db-query --check-setup
 ```
 
 See `surf-data-db/references/setup.md` for detailed setup instructions.
