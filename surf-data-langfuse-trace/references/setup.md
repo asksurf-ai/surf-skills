@@ -5,7 +5,29 @@
 - [uv](https://docs.astral.sh/uv/) (Python package runner)
 - Langfuse account with API keys
 
+## Credential Priority
+
+Credentials are resolved in this order (first found wins per key):
+
+1. **Environment variables** — `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST`
+2. **AWS Secrets Manager** — secret `langfuse/surf-ai/bot` (requires `aws` CLI configured via `aws configure` or IAM role)
+3. **Config file** — `~/.config/langfuse/config.json`
+
+AWS Secrets Manager is tried automatically and silently skipped if the `aws` CLI is not installed or credentials are not configured.
+
 ## Configuration
+
+### Option A: AWS Secrets Manager (recommended)
+
+If your team stores Langfuse credentials in AWS Secrets Manager under `langfuse/surf-ai/bot`, no local configuration is needed — just ensure the AWS CLI is configured:
+
+```bash
+aws configure
+```
+
+The secret should contain JSON keys: `public_key`, `secret_key`, `base_url`.
+
+### Option B: Config file
 
 Create the config file:
 
@@ -24,7 +46,13 @@ Edit `~/.config/langfuse/config.json`:
 }
 ```
 
-Environment variables (`LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST`) override the config file if set.
+### Option C: Environment variables
+
+```bash
+export LANGFUSE_PUBLIC_KEY="pk-lf-..."
+export LANGFUSE_SECRET_KEY="sk-lf-..."
+export LANGFUSE_HOST="https://cloud.langfuse.com"
+```
 
 ## Install the Skill
 
@@ -45,6 +73,6 @@ uv run /path/to/surf-skills/langfuse-trace-analysis/fetch_trace.py --list
 | Problem | Fix |
 |---------|-----|
 | `No module named 'langfuse'` | Use `uv run fetch_trace.py` not `uv run python fetch_trace.py` |
-| `Authentication error: ... without public_key` | Check `~/.config/langfuse/config.json` has correct keys |
+| `Authentication error: ... without public_key` | Check credentials: AWS secret, env vars, or config file |
 | `Could not find trace <id>` | Verify the trace ID exists in your Langfuse project |
 | Permission denied on config | `chmod 600 ~/.config/langfuse/config.json` |

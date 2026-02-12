@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ClickHouse Cloud query tool
+# Reads credentials from AWS Secrets Manager, queries via HTTP API
+
+REGION="us-west-2"
+
+usage() {
+  cat <<EOF
+Usage: ch-query --instance <surf|analytics> [options]
+
+Options:
+  --instance <name>   Required. "surf" (blockchain) or "analytics" (product)
+  --sql <query>       SQL query to execute
+  --db <database>     Database to query (sets clickhouse_database parameter)
+  --format <fmt>      Output format: TSV (default), JSON, CSV, Pretty
+  --check-setup       Verify AWS credentials and ClickHouse connectivity
+  -h, --help          Show this help
+EOF
+  exit 0
+}
+
+INSTANCE=""
+SQL=""
+DB=""
+FORMAT="TabSeparatedWithNames"
+CHECK_SETUP=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --instance) INSTANCE="$2"; shift 2 ;;
+    --sql) SQL="$2"; shift 2 ;;
+    --db) DB="$2"; shift 2 ;;
+    --format)
+      case "${2^^}" in
+        TSV) FORMAT="TabSeparatedWithNames" ;;
+        JSON) FORMAT="JSONEachRow" ;;
+        CSV) FORMAT="CSVWithNames" ;;
+        PRETTY) FORMAT="PrettyCompact" ;;
+        *) FORMAT="$2" ;;
+      esac
+      shift 2 ;;
+    --check-setup) CHECK_SETUP=true; shift ;;
+    -h|--help) usage ;;
+    *) echo "Unknown option: $1"; usage ;;
+  esac
+done
+
+get_secret() {
+  local secret_id="$1"
+  aws secretsmanager get-secret-value \
+    --region "$REGION" \
+    --secret-id "$secret_id" \
+    --query SecretString \
+    --output text
+}
+
+get_creds() {
+  local instance="$1"
+  local secret_id
+  case "$instance" in
+    surf) secret_id="clickhouse/surf/bot_ro" ;;
+    analytics) secret_id="clickhouse/surf-analytics/bot_ro" ;;
+    *) echo "Error: Unknown instance '$instance'. Use 'surf' or 'analytics'." >&2; exit 1 ;;
+  esac
+
+  local secret
+  secret=$(get_secret "$secret_id")
+  CH_HOST=$(echo "$secret" | jq -r '.host')
+  CH_USER=$(echo "$secret" | jq -r '.user')
+  CH_PASS=$(echo "$secret" | jq -r '.password')
+}
+
+if $CHECK_SETUP; then
+  echo "Checking setup..."
+
+  # Check AWS CLI
+  if ! command -v aws &>/dev/null; then
+    echo "FAIL: aws CLI not found"
+    exit 1
+  fi
+  echo "OK: aws CLI found"
+
+  # Check AWS credentials
+  if ! aws sts get-caller-identity &>/dev/null; then
+    echo "FAIL: AWS credentials not configured"
+    exit 1
+  fi
+  echo "OK: AWS credentials valid"
+
+  # Check curl
+  if ! command -v curl &>/dev/null; then
+    echo "FAIL: curl not found"
+    exit 1
+  fi
+  echo "OK: curl found"
+
+  # Check jq
+  if ! command -v jq &>/dev/null; then
+    echo "FAIL: jq not found"
+    exit 1
+  fi
+  echo "OK: jq found"
+
+  # Test both instances
+  for inst in surf analytics; do
+    echo ""
+    echo "Testing $inst..."
+    get_creds "$inst"
+    response=$(curl -s -o /dev/null -w "%{http_code}" \
+      "https://${CH_HOST}:8443" \
+      --user "${CH_USER}:${CH_PASS}" \
+      --data "SELECT 1")
+    if [[ "$response" == "200" ]]; then
+      echo "OK: $inst connected (${CH_HOST})"
+    else
+      echo "FAIL: $inst returned HTTP $response"
+    fi
+  done
+
+  echo ""
+  echo "Setup check complete."
+  exit 0
+fi
+
+# Validate required params
+if [[ -z "$INSTANCE" ]]; then
+  echo "Error: --instance is required" >&2
+  usage
+fi
+if [[ -z "$SQL" ]]; then
+  echo "Error: --sql is required" >&2
+  usage
+fi
+
+# Get credentials
+get_creds "$INSTANCE"
+
+# Build query with format
+QUERY="${SQL} FORMAT ${FORMAT}"
+
+# Build URL params
+URL="https://${CH_HOST}:8443/"
+if [[ -n "$DB" ]]; then
+  URL="${URL}?database=${DB}"
+fi
+
+# Execute query
+curl -sf "$URL" \
+  --user "${CH_USER}:${CH_PASS}" \
+  --data "$QUERY"

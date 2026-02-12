@@ -46,6 +46,7 @@ Output structure (session):
 import json
 import os
 import re
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -56,8 +57,33 @@ _langfuse = None
 _CONFIG_PATH = Path.home() / ".config" / "langfuse" / "config.json"
 
 
+def _load_from_aws():
+    """Load Langfuse credentials from AWS Secrets Manager via AWS CLI."""
+    try:
+        result = subprocess.run(
+            ["aws", "secretsmanager", "get-secret-value",
+             "--secret-id", "langfuse/surf-ai/bot",
+             "--query", "SecretString", "--output", "text"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode != 0:
+            return
+        secret = json.loads(result.stdout)
+        key_map = {
+            "public_key": "LANGFUSE_PUBLIC_KEY",
+            "secret_key": "LANGFUSE_SECRET_KEY",
+            "base_url": "LANGFUSE_HOST",
+        }
+        for secret_key, env_var in key_map.items():
+            if env_var not in os.environ and secret_key in secret:
+                os.environ[env_var] = secret[secret_key]
+    except Exception:
+        pass
+
+
 def _load_config():
-    """Load Langfuse credentials from ~/.config/langfuse/config.json into env vars."""
+    """Load Langfuse credentials from AWS Secrets Manager, then config file as fallback."""
+    _load_from_aws()
     if not _CONFIG_PATH.exists():
         return
     try:
