@@ -1,5 +1,5 @@
 ---
-name: surf-golang-dev
+name: surf-dev-golang
 description: Go development guide for Surf platform (muninn, argus repos). Use when working with Go code in these repos, including architecture decisions, code conventions, Ent ORM, CI/CD, testing. Also use when the user gives feedback or corrections about coding style - update the repo's CLAUDE.md to persist learnings.
 ---
 

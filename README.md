@@ -6,64 +6,27 @@ Claude Code skills for Surf platform development.
 
 | Skill | Description | For |
 |-------|-------------|-----|
-| `surf-golang-dev` | Go development guide (muninn, argus) | Backend engineers |
-| `surf-push-code` | Automate Git workflow (branch, commit, PR, merge) | All engineers |
-| `surf-db-debug` | Query staging/production databases via SSH bastion | All engineers |
-| `langfuse-trace-analysis` | Analyze Langfuse traces for debugging agent execution | AI/Agent engineers |
+| `surf-dev-golang` | Go development guide (muninn, argus) | Backend engineers |
+| `surf-dev-push-code` | Automate Git workflow (branch, commit, PR, merge) | All engineers |
+| `surf-data-db-debug` | Query staging/production databases via SSH bastion | All engineers |
+| `surf-data-langfuse-trace` | Analyze Langfuse traces for debugging agent execution | AI/Agent engineers |
 
 ## Setup
 
-### 1. Clone this repo
-
 ```bash
-cd ~/.claude/skills
-git clone git@github.com:cyberconnecthq/surf-skills.git
+npx skills add cyberconnecthq/surf-skills
 ```
 
-### 2. Enable the skills you need
-
-Create symlinks only for the skills relevant to your role:
-
-```bash
-cd ~/.claude/skills
-
-# All engineers - enable push workflow skill
-ln -s surf-skills/surf-push-code surf-push-code
-
-# Backend engineers - enable Go skill
-ln -s surf-skills/surf-golang-dev surf-golang-dev
-
-# Database debugging - enable db skill (requires additional setup)
-ln -s surf-skills/surf-db-debug surf-db-debug
-
-# AI/Agent engineers - enable trace analysis skill
-ln -s surf-skills/langfuse-trace-analysis langfuse-trace-analysis
-
-# Frontend engineers - enable frontend skill (coming soon)
-# ln -s surf-skills/surf-frontend-dev surf-frontend-dev
-```
-
-### 4. Additional Setup for surf-db-debug
+### Additional Setup for surf-data-db-debug
 
 The database debugging skill requires a private configuration file with your connection details. This file is **never committed to git**.
 
 ```bash
 # Run setup check - Claude will guide you through configuration
-~/.claude/skills/surf-db-debug/scripts/surf-db-query --check-setup
+~/.claude/skills/surf-data-db-debug/scripts/surf-db-query --check-setup
 ```
 
-No external dependencies needed - uses Python3's built-in `json` module.
-
-See `surf-db-debug/references/setup.md` for detailed setup instructions.
-
-### 3. Sync updates
-
-Periodically pull to get team learnings:
-
-```bash
-cd ~/.claude/skills/surf-skills
-git pull
-```
+See `surf-data-db-debug/references/setup.md` for detailed setup instructions.
 
 ## Contributing Learnings
 
@@ -73,11 +36,21 @@ When Claude suggests adding a learning:
 2. Commit and push the change
 3. Team members get updates via `git pull`
 
-## Adding New Skills
+## Development
 
-To add a new skill (e.g., `surf-frontend-dev`):
+For live editing while developing skills, use symlinks instead of `npx skills add`:
 
-1. Create directory: `surf-frontend-dev/`
+```bash
+git clone git@github.com:cyberconnecthq/surf-skills.git
+cd ~/.claude/skills
+ln -s /path/to/surf-skills/surf-dev-golang surf-dev-golang
+```
+
+Changes to the repo are reflected immediately — no reinstall needed.
+
+### Adding New Skills
+
+1. Create directory with category prefix: `surf-dev-<name>/` or `surf-data-<name>/`
 2. Add `SKILL.md` with YAML frontmatter
 3. Add `references/` and `learnings.md` as needed
 4. Update this README

@@ -1,5 +1,5 @@
 ---
-name: trace-analysis
+name: surf-data-langfuse-trace
 description: Start the Langfuse trace analysis interactive CLI. Use when analyzing traces, debugging agent execution, investigating performance issues, or examining Langfuse observations.
 allowed-tools:
   - Bash

@@ -1,6 +1,6 @@
 ---
-name: surf-push-code
-description: Automate the Git workflow for pushing code changes. Creates feature branch, commits, pushes, creates PR, waits for CI, squash merges, and cleans up. Use when user says /surf-push-code or asks to push/merge their changes.
+name: surf-dev-push-code
+description: Automate the Git workflow for pushing code changes. Creates feature branch, commits, pushes, creates PR, waits for CI, squash merges, and cleans up. Use when user says /surf-dev-push-code or asks to push/merge their changes.
 ---
 
 # Surf Push Code Workflow
@@ -10,7 +10,7 @@ Automated Git workflow for pushing code changes to production.
 ## Usage
 
 ```
-/surf-push-code [branch-name] [commit-message]
+/surf-dev-push-code [branch-name] [commit-message]
 ```
 
 If branch-name or commit-message not provided, Claude will:
@@ -115,7 +115,7 @@ git branch -d <branch-name>
 
 ## Example Session
 
-User: `/surf-push-code`
+User: `/surf-dev-push-code`
 
 Claude:
 1. Analyzes diff: "3 files changed - adding filtered tags for signal processing"

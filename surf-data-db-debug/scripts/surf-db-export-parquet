@@ -47,7 +47,7 @@ def log_error(msg):
 def load_config():
     if not CONFIG_FILE.exists():
         log_error(f"Config file not found: {CONFIG_FILE}")
-        print("    Set up surf-db-debug first: ~/.claude/skills/surf-db-debug/references/setup.md")
+        print("    Set up surf-data-db-debug first: ~/.claude/skills/surf-data-db-debug/references/setup.md")
         sys.exit(1)
     with open(CONFIG_FILE) as f:
         return json.load(f)
@@ -183,7 +183,7 @@ def check_setup():
             log_info(f"  Environment '{env_name}' configured")
     else:
         log_error(f"Config file not found: {CONFIG_FILE}")
-        print("    Set up surf-db-debug first: ~/.claude/skills/surf-db-debug/references/setup.md")
+        print("    Set up surf-data-db-debug first: ~/.claude/skills/surf-data-db-debug/references/setup.md")
         errors += 1
 
     print()

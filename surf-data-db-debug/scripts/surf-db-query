@@ -176,7 +176,7 @@ check_setup() {
         log_info "Config file exists: $CONFIG_FILE"
     else
         log_error "Config file not found: $CONFIG_FILE"
-        echo "    Create it by following: ~/.claude/skills/surf-db-debug/references/setup.md"
+        echo "    Create it by following: ~/.claude/skills/surf-data-db-debug/references/setup.md"
         errors=$((errors + 1))
     fi
 
