@@ -1,11 +1,11 @@
 ---
 name: surf-data-db-debug
-description: Use when debugging database issues, exploring data, or running SQL queries against staging/production databases. Provides safe database access through SSH bastion with built-in safety checks.
+description: Use when debugging database issues, exploring data, or running SQL queries against staging/production databases. Provides safe database access with built-in safety checks. Supports direct connections and SSH bastion tunnels.
 ---
 
 # Database Debugging Skill
 
-Query staging and production databases for debugging through SSH bastion.
+Query staging and production databases for debugging. Config is auto-loaded from AWS Secrets Manager if the `aws` CLI is configured (secret: `postgres/prd-odin/bot_ro`), otherwise falls back to `~/.config/surf-db/config.json`. SSH tunnels are only used when a `bastion` key is present in the config; otherwise the tool connects directly.
 
 ## First-Time Setup Check
 
@@ -45,13 +45,11 @@ Use the full path: `~/.claude/skills/surf-data-db-debug/scripts/surf-db-query`
 # With output format
 ~/.claude/skills/surf-data-db-debug/scripts/surf-db-query --env stg --sql "SELECT ..." --format csv
 ~/.claude/skills/surf-data-db-debug/scripts/surf-db-query --env stg --sql "SELECT ..." --format json
-
-# Export to parquet (requires uv — DuckDB auto-installed on first use)
-~/.claude/skills/surf-data-db-debug/scripts/surf-db-query --env stg --sql "SELECT ..." --format parquet
-~/.claude/skills/surf-data-db-debug/scripts/surf-db-query --env stg --sql "SELECT ..." --format parquet --output /tmp/data.parquet
 ```
 
-### Tunnel Management (for performance)
+### Tunnel Management (bastion configs only)
+
+Tunnels are only needed when the config has a `bastion` key. Direct-connect configs skip tunnels automatically.
 
 ```bash
 # Start persistent tunnel (recommended at session start)
@@ -111,7 +109,7 @@ For **production** (`--env prd` or `--env prd:*`):
    ~/.claude/skills/surf-data-db-debug/scripts/surf-db-query --env stg --list-dbs
    ```
 
-2. **Start tunnel** for faster repeated queries:
+2. **Start tunnel** (bastion configs only) for faster repeated queries:
    ```bash
    ~/.claude/skills/surf-data-db-debug/scripts/surf-db-query --env stg --tunnel start
    ```
@@ -140,11 +138,12 @@ For **production** (`--env prd` or `--env prd:*`):
 ## Error Handling
 
 If you see connection errors:
-1. Check if tunnel is running: `--env stg --tunnel status`
+1. For bastion configs: Check if tunnel is running: `--env stg --tunnel status`
 2. Try restarting tunnel: `--tunnel stop` then `--tunnel start`
 3. Verify SSH key permissions: should be 600
 4. Check if bastion is reachable
-5. Guide user to verify their config file
+5. For direct configs: Verify the database host is reachable from the current network
+6. Guide user to verify their config file
 
 ## What This Skill Does NOT Know
 
@@ -153,4 +152,4 @@ If you see connection errors:
 - Usernames or passwords
 - SSH key file locations
 
-All connection details are stored in the user's private config file (`~/.config/surf-db/config.json`) which is never shared or committed.
+All connection details come from AWS Secrets Manager or the user's private config file (`~/.config/surf-db/config.json`), neither of which is shared or committed.

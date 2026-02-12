@@ -2,12 +2,19 @@
 
 This guide helps you configure secure database access for AI-assisted debugging.
 
+## Config Resolution Order
+
+1. **AWS Secrets Manager** (automatic) — If `aws` CLI is configured, the tool fetches the secret `postgres/prd-odin/bot_ro` which contains the full config JSON. No local file needed.
+2. **Local config file** (`~/.config/surf-db/config.json`) — Fallback when AWS is unavailable.
+
+Configs **without a `bastion` key** connect directly to the database host (no SSH tunnel needed). Configs **with a `bastion` key** use SSH tunnels as before.
+
 ## Prerequisites
 
-- SSH access to bastion hosts
-- Database credentials (read-only recommended)
 - `psql` (PostgreSQL) or `mysql` client installed
 - Python3 (standard on macOS, json module is built-in)
+- **For bastion configs**: SSH access to bastion hosts
+- **For AWS configs**: `aws` CLI configured with appropriate credentials
 
 ## Step 1: Create Config Directory
 
@@ -86,16 +93,41 @@ Edit `~/.config/surf-db/config.json`:
 }
 ```
 
+### Direct Connection Config (no bastion)
+
+When the config omits the `bastion` key, the tool connects directly to the database host without an SSH tunnel. This is typical for configs loaded from AWS Secrets Manager:
+
+```json
+{
+  "environments": {
+    "prd": {
+      "default_db": "main",
+      "databases": {
+        "main": {
+          "type": "postgres",
+          "host": "db-main.prod.example.com",
+          "port": 5432,
+          "name": "myapp_production",
+          "user": "bot_ro",
+          "password": "secret"
+        }
+      }
+    }
+  }
+}
+```
+
 ### Configuration Notes
 
 - **Multiple databases**: Each environment can have multiple databases under `databases`
 - **default_db**: Specifies which database to use when `--env stg` is used without specifying a database
 - **password vs password_cmd**: Use `password_cmd` to fetch from password managers (recommended)
 - **tunnel_port** (optional): Add to a database config to use a specific local port
+- **bastion** (optional): Omit to connect directly; include for SSH tunnel access
 
-## Step 3: Configure SSH ControlMaster (Recommended)
+## Step 3: Configure SSH ControlMaster (Bastion configs only)
 
-This enables connection reuse for faster repeated queries.
+This enables connection reuse for faster repeated queries. Skip this step if your config uses direct connections (no `bastion` key).
 
 Create socket directory:
 

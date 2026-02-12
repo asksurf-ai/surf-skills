@@ -62,6 +62,24 @@ Learning format:
 **Example**: [Code if applicable]
 ```
 
+## Shell Scripting
+
+All bash scripts in skills must work on **macOS default bash (3.x)**. Avoid bash 4+ syntax:
+
+| Avoid (bash 4+) | Use instead (POSIX-compatible) |
+|---|---|
+| `${var^^}` (uppercase) | `$(printf '%s' "$var" \| tr '[:lower:]' '[:upper:]')` |
+| `${var,,}` (lowercase) | `$(printf '%s' "$var" \| tr '[:upper:]' '[:lower:]')` |
+| Associative arrays `declare -A` | Use `case` statements or JSON with `python3 -c` |
+
+## Credential Handling
+
+All skills that need secrets must follow these rules:
+
+1. **AWS Secrets Manager is always #1 priority.** When AWS credentials are available, they override env vars and config files.
+2. **Secrets only live in memory.** Never write credentials to disk (no temp files, no logs, no caches). Use shell variables or `os.environ` (process-scoped) only.
+3. **Fallback order:** AWS Secrets Manager → environment variables → config file.
+
 ## Skill Installation
 
 Install via CLI:
