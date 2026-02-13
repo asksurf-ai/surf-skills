@@ -11,7 +11,7 @@ Query staging and production databases for debugging. Config is auto-loaded from
 
 ## First-Time Setup Check
 
-**IMPORTANT**: Before using any database commands, ALWAYS check if the tool is configured:
+**IMPORTANT**: Before using any database commands, ALWAYS run setup check first:
 
 ```bash
 scripts/surf-db-query --check-setup
@@ -24,29 +24,32 @@ If setup is not complete, guide the user through setup:
 
 Do NOT proceed with any database queries until setup is confirmed.
 
+## Discovering Available Environments
+
+**ALWAYS run `--list-dbs` first** to discover which environments and databases are configured. Do NOT assume `stg` or `prd` exist — the config varies per user.
+
+```bash
+scripts/surf-db-query --env <ENV> --list-dbs
+```
+
+Use the environment names returned by `--check-setup` or `--list-dbs`.
+
 ## Available Commands
 
 Script: `scripts/surf-db-query`
-
-### List Databases
-
-```bash
-scripts/surf-db-query --env stg --list-dbs
-```
 
 ### Query Database
 
 ```bash
 # Query default database
-scripts/surf-db-query --env stg --sql "SELECT * FROM users WHERE id = 123"
+scripts/surf-db-query --env <ENV> --sql "SELECT * FROM users WHERE id = 123"
 
 # Query specific database (env:db format)
-scripts/surf-db-query --env stg:analytics --sql "SELECT * FROM events LIMIT 10"
-scripts/surf-db-query --env prd:main --sql "EXPLAIN ANALYZE SELECT ..."
+scripts/surf-db-query --env <ENV>:<DB> --sql "SELECT * FROM events LIMIT 10"
 
 # With output format
-scripts/surf-db-query --env stg --sql "SELECT ..." --format csv
-scripts/surf-db-query --env stg --sql "SELECT ..." --format json
+scripts/surf-db-query --env <ENV> --sql "SELECT ..." --format csv
+scripts/surf-db-query --env <ENV> --sql "SELECT ..." --format json
 ```
 
 ### Tunnel Management (bastion configs only)
@@ -54,15 +57,9 @@ scripts/surf-db-query --env stg --sql "SELECT ..." --format json
 Tunnels are only needed when the config has a `bastion` key. Direct-connect configs skip tunnels automatically.
 
 ```bash
-# Start persistent tunnel (recommended at session start)
-scripts/surf-db-query --env stg --tunnel start
-scripts/surf-db-query --env stg:analytics --tunnel start
-
-# Check tunnel status
-scripts/surf-db-query --env stg --tunnel status
-
-# Stop tunnel when done (optional - auto-closes after 10min idle)
-scripts/surf-db-query --env stg --tunnel stop
+scripts/surf-db-query --env <ENV> --tunnel start
+scripts/surf-db-query --env <ENV> --tunnel status
+scripts/surf-db-query --env <ENV> --tunnel stop   # optional - auto-closes after 10min idle
 ```
 
 ## Safety Rules - MUST FOLLOW
@@ -92,55 +89,56 @@ You may execute these without user confirmation:
 5. Only then execute with `--write` flag:
 
 ```bash
-scripts/surf-db-query --env stg:main --sql "UPDATE users SET status = 'active' WHERE id = 123" --write
+scripts/surf-db-query --env <ENV>:<DB> --sql "UPDATE users SET status = 'active' WHERE id = 123" --write
 ```
 
 The `--write` flag is REQUIRED for any write operation. The tool will refuse to execute writes without it.
 
 ### Production Extra Caution
 
-For **production** (`--env prd` or `--env prd:*`):
+For **production** environments:
 - Double-check the query logic
 - Prefer running on staging first if possible
 - For writes, make the confirmation question very clear about production impact
 
 ## Debugging Workflow
 
-1. **Check available databases**:
+1. **Discover environments and databases**:
    ```bash
-   scripts/surf-db-query --env stg --list-dbs
+   scripts/surf-db-query --check-setup
+   scripts/surf-db-query --env <ENV> --list-dbs
    ```
 
 2. **Start tunnel** (bastion configs only) for faster repeated queries:
    ```bash
-   scripts/surf-db-query --env stg --tunnel start
+   scripts/surf-db-query --env <ENV> --tunnel start
    ```
 
 3. **Explore schema**:
    ```bash
    # PostgreSQL
-   scripts/surf-db-query --env stg --sql "\\dt"
-   scripts/surf-db-query --env stg --sql "\\d table_name"
+   scripts/surf-db-query --env <ENV> --sql "\\dt"
+   scripts/surf-db-query --env <ENV> --sql "\\d table_name"
 
    # MySQL
-   scripts/surf-db-query --env stg:events --sql "SHOW TABLES"
-   scripts/surf-db-query --env stg:events --sql "DESCRIBE table_name"
+   scripts/surf-db-query --env <ENV>:<DB> --sql "SHOW TABLES"
+   scripts/surf-db-query --env <ENV>:<DB> --sql "DESCRIBE table_name"
    ```
 
 4. **Investigate data**:
    ```bash
-   scripts/surf-db-query --env stg --sql "SELECT * FROM orders WHERE user_id = 123 ORDER BY created_at DESC LIMIT 10"
+   scripts/surf-db-query --env <ENV> --sql "SELECT * FROM orders WHERE user_id = 123 ORDER BY created_at DESC LIMIT 10"
    ```
 
 5. **Check query performance**:
    ```bash
-   scripts/surf-db-query --env stg --sql "EXPLAIN ANALYZE SELECT ..."
+   scripts/surf-db-query --env <ENV> --sql "EXPLAIN ANALYZE SELECT ..."
    ```
 
 ## Error Handling
 
 If you see connection errors:
-1. For bastion configs: Check if tunnel is running: `--env stg --tunnel status`
+1. For bastion configs: Check if tunnel is running: `--tunnel status`
 2. Try restarting tunnel: `--tunnel stop` then `--tunnel start`
 3. Verify SSH key permissions: should be 600
 4. Check if bastion is reachable
