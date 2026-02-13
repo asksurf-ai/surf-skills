@@ -103,6 +103,10 @@ For **production** environments:
 - Prefer running on staging first if possible
 - For writes, make the confirmation question very clear about production impact
 
+## Table Schema Reference
+
+Before writing queries against the Surf product database, read `references/surf-tables.md` for key table schemas and common gotchas (e.g., user email lookup, referral tracking, subscription status values).
+
 ## Debugging Workflow
 
 1. **Discover environments and databases**:

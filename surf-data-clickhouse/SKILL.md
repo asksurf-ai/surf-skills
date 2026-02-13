@@ -107,9 +107,20 @@ FROM default.chat_messages
 WHERE created_at >= now() - INTERVAL 30 DAY
 GROUP BY day ORDER BY day DESC
 
--- User lookup
-SELECT id, name, email, created_at, last_login_at FROM default.users
-WHERE email = 'user@example.com'
+-- User lookup (IMPORTANT: email is often NULL, search all email fields)
+SELECT id, name, email, google_email, apple_email, created_at, last_login_at
+FROM default.users
+WHERE email ILIKE '%query%' OR google_email ILIKE '%query%' OR apple_email ILIKE '%query%'
+
+-- Referral analysis for a user
+SELECT
+    countIf(invited_user_id IS NOT NULL) as successful_referrals,
+    countIf(invited_user_id IN (
+        SELECT user_id FROM default.user_subscriptions
+        WHERE payment_source != 'FREE' AND subscription_type != 'PRO_TRIAL'
+    )) as converted_to_paying
+FROM default.invitation_codes
+WHERE owner_user_id = 'uuid-here'
 
 -- Session messages
 SELECT id, human_message, status, created_at

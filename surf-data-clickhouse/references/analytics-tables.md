@@ -7,17 +7,24 @@ Single `default` database containing product analytics tables synced from the ap
 ## Tables
 
 ### `users` — User accounts (557K rows)
+
+> **IMPORTANT — Email lookup**: The `email` field is usually NULL. Most users sign up via OAuth, so their email is stored in `google_email` or `apple_email` instead. When looking up a user by email, always search ALL email fields:
+> ```sql
+> SELECT * FROM default.users
+> WHERE email ILIKE '%query%' OR google_email ILIKE '%query%' OR apple_email ILIKE '%query%'
+> ```
+
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID | Primary key |
 | name | String | Display name |
-| email | Nullable(String) | |
+| email | Nullable(String) | Often NULL — check google_email/apple_email too |
 | avatar_url | String | |
-| invitation_code | String | Referral code used to sign up |
+| invitation_code | String | The referrer's code this user entered at signup. Note: for comprehensive referral tracking, use the `invitation_codes` table instead |
 | x_id, x_handle, x_display_name | Nullable(String) | Twitter/X profile |
 | x_followers_count | Nullable(Int64) | |
-| google_id, google_email, google_name | Nullable(String) | Google OAuth |
-| apple_id, apple_email | Nullable(String) | Apple Sign In |
+| google_id, google_email, google_name | Nullable(String) | Google OAuth — often the real email |
+| apple_id, apple_email | Nullable(String) | Apple Sign In — often the real email |
 | turnkey_default_eth_address | Nullable(String) | Embedded wallet ETH address |
 | turnkey_default_sol_address | Nullable(String) | Embedded wallet SOL address |
 | stripe_customer_id | Nullable(String) | Stripe billing |
@@ -102,14 +109,28 @@ Detailed LLM call observations. Largest table.
 | image | Nullable(String) | Logo URL |
 
 ### `user_subscriptions` — Subscription billing (26K rows)
+
+> **IMPORTANT — Paying vs free**: To identify real paying users, filter out free trials:
+> - `payment_source` values: `STRIPE`, `GOOGLEPAY`, `APPLEPAY` (real payment) vs `FREE` (not paying)
+> - `subscription_type` values: `PRO`, `PLUS` (real plans) vs `PRO_TRIAL` (free trial)
+> - `status` values are **UPPERCASE**: `ACTIVE`, `INACTIVE`
+> ```sql
+> -- Real paying users (ever paid)
+> SELECT user_id FROM default.user_subscriptions
+> WHERE payment_source != 'FREE' AND subscription_type != 'PRO_TRIAL'
+> -- Currently paying users
+> SELECT user_id FROM default.user_subscriptions
+> WHERE status = 'ACTIVE' AND payment_source != 'FREE'
+> ```
+
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID | |
 | user_id | UUID | FK to users |
-| subscription_type | Nullable(String) | Plan type |
-| status | LowCardinality(Nullable(String)) | active/canceled/etc |
+| subscription_type | Nullable(String) | `PRO`, `PLUS`, `PRO_TRIAL` |
+| status | LowCardinality(Nullable(String)) | `ACTIVE` / `INACTIVE` (uppercase) |
 | period | Nullable(String) | monthly/yearly |
-| payment_source | Nullable(String) | stripe/daimo/revenue_cat |
+| payment_source | Nullable(String) | `STRIPE` / `GOOGLEPAY` / `APPLEPAY` / `FREE` |
 | start_date | Nullable(DateTime64(3)) | |
 | end_date | Nullable(DateTime64(3)) | |
 | rank | Int64 | |
@@ -121,6 +142,42 @@ Detailed LLM call observations. Largest table.
 | label | LowCardinality(String) |
 
 ### `invitation_codes` — Referral codes (530K rows)
+
+> **This is the primary table for referral tracking.** Each row is a single-use invite code. To find all users referred by someone, query by `owner_user_id` and look at `invited_user_id`.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | Primary key |
+| code | String | The invite code string |
+| is_used | Bool | Whether the code was redeemed (default false) |
+| owner_user_id | Nullable(UUID) | FK to users — who generated/owns this code |
+| owner_device_id | Nullable(String) | Device that generated the code |
+| invited_user_id | Nullable(UUID) | FK to users — who signed up using this code |
+| reused_count | Int64 | Number of times code was reused (default 0) |
+| type | String | Code type |
+| shared | Bool | Whether the code was shared (default false) |
+| created_at | DateTime64(3) | |
+| updated_at | DateTime64(3) | |
+| _version | UInt64 | |
+
+> **Referral analysis pattern:**
+> ```sql
+> -- Count referrals per user and how many converted to paying
+> SELECT
+>     owner_user_id,
+>     countIf(invited_user_id IS NOT NULL) as successful_referrals,
+>     countIf(invited_user_id IN (
+>         SELECT user_id FROM default.user_subscriptions
+>         WHERE status = 'ACTIVE' AND payment_source != 'FREE'
+>     )) as currently_paying,
+>     countIf(invited_user_id IN (
+>         SELECT user_id FROM default.user_subscriptions
+>         WHERE payment_source != 'FREE' AND subscription_type != 'PRO_TRIAL'
+>     )) as ever_paid
+> FROM default.invitation_codes
+> WHERE owner_user_id = 'uuid-here'
+> GROUP BY owner_user_id
+> ```
 
 ### `feedbacks` — User feedback (970 rows)
 

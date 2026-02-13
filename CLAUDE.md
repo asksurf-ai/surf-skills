@@ -24,6 +24,8 @@ surf-skills/
 ├── surf-data-db/           # Database debugging skill
 │   ├── SKILL.md
 │   ├── references/
+│   │   ├── setup.md
+│   │   └── surf-tables.md  # Key table schemas & gotchas (shared with ClickHouse)
 │   └── scripts/
 ├── surf-data-langfuse-trace/     # Langfuse trace analysis skill
 │   ├── SKILL.md
@@ -60,6 +62,7 @@ When working on Surf platform code and receiving user feedback:
 2. **Persist the learning**:
    - General Go patterns → Update `learnings.md` in this repo
    - Project-specific info → Update that project's `CLAUDE.md`
+   - Data/schema discoveries (table gotchas, column value enums, query patterns) → Update the relevant skill's `references/` docs (e.g., `analytics-tables.md`, `surf-tables.md`). Keep both `surf-data-clickhouse` and `surf-data-db` in sync since they query the same underlying data.
 3. **Commit the update** to the appropriate repository
 
 Learning format:
