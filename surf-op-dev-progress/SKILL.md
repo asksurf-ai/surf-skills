@@ -62,3 +62,16 @@ scripts/post-to-notion --check-setup
 - Database ID: `2e60c7ec-751f-804c-99ec-f5e12e1f571c`
 - Converts markdown (headings, bold, bullets, dividers) to Notion blocks
 - Max 100 blocks per page (Notion API limit)
+
+### 4. Post Notion link to Slack
+
+Share the Notion page URL in Slack so the team gets notified.
+
+```bash
+scripts/post-to-slack --title "Dev Team Progress — 2026-02-12" --url "https://notion.so/..."
+
+# Verify setup
+scripts/post-to-slack --check-setup
+```
+
+- Webhook URL is loaded from AWS Secrets Manager (`slack/dev-progress-webhook`)
