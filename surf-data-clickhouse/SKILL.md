@@ -20,6 +20,7 @@ scripts/ch-query --check-setup
 Requirements:
 - AWS CLI configured with access to Secrets Manager in `us-west-2`
 - `curl` installed (used for ClickHouse HTTP API)
+- `jq` installed (used to parse AWS secrets)
 
 ## Instances
 

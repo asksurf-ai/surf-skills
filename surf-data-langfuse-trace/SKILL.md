@@ -76,6 +76,7 @@ Read the appropriate summary file directly and report findings.
 ├── llm_only.txt             # LLM generations with outputs
 ├── key_values.txt           # Indexed numbers/addresses for lookup
 ├── all_outputs.txt          # Full text for grep searches
+├── observations_summary.txt # Quick overview of all observations
 ├── trace_meta.json          # Trace metadata
 ├── trace_input.txt          # User's original input
 ├── trace_output.txt         # Final output
@@ -105,6 +106,9 @@ uv run SCRIPT_PATH --session <SESSION_ID>
 
 # Fast mode (recommended for sessions with many traces)
 uv run SCRIPT_PATH --session <SESSION_ID> --fast
+
+# Force re-fetch (ignore cache)
+uv run SCRIPT_PATH --session <SESSION_ID> --force
 ```
 
 Files are saved to `/tmp/trace_analysis/sessions/<session_id_prefix>/`

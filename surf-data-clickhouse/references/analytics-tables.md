@@ -1,6 +1,6 @@
 # Surf-Analytics ClickHouse — Product Data
 
-Host: `bw77830oe5.us-west-2.aws.clickhouse.cloud`
+Instance: `surf-analytics` (host resolved from AWS Secrets Manager at runtime)
 
 Single `default` database containing product analytics tables synced from the application.
 

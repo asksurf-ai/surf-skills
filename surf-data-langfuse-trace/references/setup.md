@@ -58,14 +58,14 @@ export LANGFUSE_HOST="https://cloud.langfuse.com"
 
 ```bash
 mkdir -p ~/.claude/skills
-ln -s /path/to/surf-skills/langfuse-trace-analysis ~/.claude/skills/langfuse-trace-analysis
+ln -s /path/to/surf-skills/surf-data-langfuse-trace ~/.claude/skills/surf-data-langfuse-trace
 ```
 
 ## Verify
 
 ```bash
 # Should print usage without errors
-uv run /path/to/surf-skills/langfuse-trace-analysis/fetch_trace.py --list
+uv run /path/to/surf-skills/surf-data-langfuse-trace/fetch_trace.py --list
 ```
 
 ## Troubleshooting

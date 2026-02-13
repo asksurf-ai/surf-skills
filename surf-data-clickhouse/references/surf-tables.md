@@ -1,6 +1,6 @@
 # Surf ClickHouse — Blockchain Data
 
-Host: `jhi34kymov.us-west-2.aws.clickhouse.cloud`
+Instance: `surf` (host resolved from AWS Secrets Manager at runtime)
 
 100+ databases covering Ethereum blockchain data, DeFi protocols, cross-chain bridges, and token prices.
 

@@ -154,16 +154,18 @@ scripts/surf-db-query --check-setup
 
 Expected output:
 ```
+✓ AWS CLI available (Secrets Manager lookup enabled)
 ✓ Config file exists: ~/.config/surf-db/config.json
 ✓ Config file permissions: 600
 ✓ Python3 available (json module built-in)
 ✓ PostgreSQL client (psql) found
-✓ Environment 'stg' configured
+✓ MySQL client found              (or ⚠ MySQL client not found)
+✓ Environment 'stg' configured (bastion)
 ✓   SSH key exists: ~/.ssh/your-staging-key
       Database: main (default)
       Database: analytics
       Database: events
-✓ Environment 'prd' configured
+✓ Environment 'prd' configured (bastion)
 ✓   SSH key exists: ~/.ssh/your-prod-key
       Database: main (default)
 ✓ SSH socket directory exists: ~/.ssh/sockets
@@ -194,15 +196,15 @@ scripts/surf-db-query --env stg:analytics --sql "SELECT 1"
 
 ```bash
 # Use default database for stg
-surf-db-query --env stg --sql "SELECT * FROM users LIMIT 5"
+scripts/surf-db-query --env stg --sql "SELECT * FROM users LIMIT 5"
 
 # Use specific database
-surf-db-query --env stg:analytics --sql "SELECT * FROM events LIMIT 5"
-surf-db-query --env stg:events --sql "SHOW TABLES"
+scripts/surf-db-query --env stg:analytics --sql "SELECT * FROM events LIMIT 5"
+scripts/surf-db-query --env stg:events --sql "SHOW TABLES"
 
 # Tunnel management per database
-surf-db-query --env stg:main --tunnel start
-surf-db-query --env stg:analytics --tunnel start
+scripts/surf-db-query --env stg:main --tunnel start
+scripts/surf-db-query --env stg:analytics --tunnel start
 ```
 
 ## Security Best Practices
@@ -221,14 +223,14 @@ chmod 600 ~/.ssh/your-key
 ```
 
 ### "Connection refused" on database
-- Check if tunnel is running: `surf-db-query --env stg --tunnel status`
+- Check if tunnel is running: `scripts/surf-db-query --env stg --tunnel status`
 - Verify database host/port in config
 - Check security group/firewall rules
 
 ### Forgot to close tunnel?
 No problem! Tunnels use `ControlPersist` and will auto-close after 10 minutes of inactivity. You can also manually stop:
 ```bash
-surf-db-query --env stg --tunnel stop
+scripts/surf-db-query --env stg --tunnel stop
 ```
 
 ### Password command fails

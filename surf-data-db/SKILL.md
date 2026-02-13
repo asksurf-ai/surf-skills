@@ -26,13 +26,15 @@ Do NOT proceed with any database queries until setup is confirmed.
 
 ## Discovering Available Environments
 
-**ALWAYS run `--list-dbs` first** to discover which environments and databases are configured. Do NOT assume `stg` or `prd` exist — the config varies per user.
+Run `--check-setup` to discover which environments and databases are configured. Do NOT assume `stg` or `prd` exist — the config varies per user.
 
 ```bash
+# Discover all environments and their databases (no --env required)
+scripts/surf-db-query --check-setup
+
+# List databases for a specific environment
 scripts/surf-db-query --env <ENV> --list-dbs
 ```
-
-Use the environment names returned by `--check-setup` or `--list-dbs`.
 
 ## Available Commands
 
@@ -74,7 +76,7 @@ You may execute these without user confirmation:
 ### Write Operations (DANGEROUS - Always Ask First)
 
 **NEVER** execute write operations without explicit user approval:
-- `INSERT`, `UPDATE`, `DELETE`
+- `INSERT`, `UPDATE`, `DELETE`, `REPLACE`, `MERGE`
 - `CREATE`, `ALTER`, `DROP`, `TRUNCATE`
 - `GRANT`, `REVOKE`
 
@@ -116,9 +118,11 @@ For **production** environments:
 
 3. **Explore schema**:
    ```bash
-   # PostgreSQL
+   # PostgreSQL (meta-commands only work with default table format, not --format csv/json)
    scripts/surf-db-query --env <ENV> --sql "\\dt"
    scripts/surf-db-query --env <ENV> --sql "\\d table_name"
+   # Alternative using standard SQL (works with all --format options):
+   scripts/surf-db-query --env <ENV> --sql "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
 
    # MySQL
    scripts/surf-db-query --env <ENV>:<DB> --sql "SHOW TABLES"

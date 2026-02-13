@@ -26,10 +26,13 @@ Generate a daily team update from GitHub commits across all `cyberconnecthq` rep
 
 ```bash
 # Today's report (yesterday 9am CST → today 9am CST)
-surf-op-dev-progress/scripts/generate-report
+scripts/generate-report
 
 # Specific date
-surf-op-dev-progress/scripts/generate-report --date 2026-02-12
+scripts/generate-report --date 2026-02-12
+
+# Custom output directory (default: /tmp)
+scripts/generate-report --output /path/to/dir
 ```
 
 Output: `/tmp/team-progress-YYYY-MM-DD.md`
