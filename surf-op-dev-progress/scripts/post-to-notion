@@ -1,0 +1,214 @@
+#!/usr/bin/env bash
+# Posts a dev progress report to the Notion "Docs" database.
+#
+# Usage:
+#   scripts/post-to-notion --title "Team Progress — 2026-02-12" --body "report content here"
+#   scripts/post-to-notion --title "Team Progress — 2026-02-12" --file /tmp/team-progress-2026-02-12-summary.md
+#
+# The script loads the Notion bot token from AWS Secrets Manager (notion/bot).
+#
+# Requires: aws, curl, python3
+
+set -euo pipefail
+
+NOTION_DB_ID="2e60c7ec-751f-804c-99ec-f5e12e1f571c"
+AWS_SECRET_ID="notion/bot"
+
+TITLE=""
+BODY=""
+FILE=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --title) TITLE="$2"; shift 2 ;;
+    --body) BODY="$2"; shift 2 ;;
+    --file) FILE="$2"; shift 2 ;;
+    --check-setup)
+      echo "Checking setup..."
+      if ! command -v aws >/dev/null 2>&1; then
+        echo "FAIL: aws CLI not found"; exit 1
+      fi
+      if ! command -v curl >/dev/null 2>&1; then
+        echo "FAIL: curl not found"; exit 1
+      fi
+      TOKEN=$(aws secretsmanager get-secret-value --secret-id "$AWS_SECRET_ID" --query SecretString --output text 2>/dev/null | sed 's/{secret: //;s/}//') || true
+      if [ -z "$TOKEN" ]; then
+        echo "FAIL: Could not fetch notion/bot from AWS Secrets Manager"; exit 1
+      fi
+      RESP=$(curl -sS "https://api.notion.com/v1/databases/$NOTION_DB_ID" \
+        -H "Authorization: Bearer $TOKEN" \
+        -H "Notion-Version: 2022-06-28" 2>&1)
+      if echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if d.get('object')=='database' else 1)" 2>/dev/null; then
+        echo "OK: Connected to Notion database '$(echo "$RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)['title'][0]['plain_text'])")'"
+      else
+        echo "FAIL: Cannot access database. Error: $(echo "$RESP" | python3 -c "import sys,json; print(json.load(sys.stdin).get('message','unknown'))" 2>/dev/null || echo "$RESP")"
+        exit 1
+      fi
+      echo "Setup OK."
+      exit 0
+      ;;
+    *) echo "Unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+
+if [ -z "$TITLE" ]; then
+  echo "Error: --title is required" >&2; exit 1
+fi
+
+if [ -n "$FILE" ]; then
+  if [ ! -f "$FILE" ]; then
+    echo "Error: file not found: $FILE" >&2; exit 1
+  fi
+  BODY=$(cat "$FILE")
+fi
+
+if [ -z "$BODY" ]; then
+  echo "Error: --body or --file is required" >&2; exit 1
+fi
+
+# Load Notion token from AWS Secrets Manager
+NOTION_TOKEN=$(aws secretsmanager get-secret-value --secret-id "$AWS_SECRET_ID" --query SecretString --output text | sed 's/{secret: //;s/}//')
+
+if [ -z "$NOTION_TOKEN" ]; then
+  echo "Error: Could not fetch Notion token from AWS Secrets Manager ($AWS_SECRET_ID)" >&2
+  exit 1
+fi
+
+# Convert markdown body to Notion blocks via python3
+# Notion API accepts blocks as children. We split by lines and create paragraph/heading blocks.
+PAYLOAD=$(python3 -c "
+import json, sys, re
+
+title = sys.argv[1]
+body = sys.argv[2]
+
+children = []
+for line in body.split('\n'):
+    stripped = line.strip()
+    if not stripped:
+        continue
+
+    # Heading 1: # text
+    if stripped.startswith('# ') and not stripped.startswith('## '):
+        children.append({
+            'object': 'block',
+            'type': 'heading_1',
+            'heading_1': {
+                'rich_text': [{'type': 'text', 'text': {'content': stripped[2:]}}]
+            }
+        })
+    # Heading 2: ## text
+    elif stripped.startswith('## '):
+        children.append({
+            'object': 'block',
+            'type': 'heading_2',
+            'heading_2': {
+                'rich_text': [{'type': 'text', 'text': {'content': stripped[3:]}}]
+            }
+        })
+    # Heading 3: ### text
+    elif stripped.startswith('### '):
+        children.append({
+            'object': 'block',
+            'type': 'heading_3',
+            'heading_3': {
+                'rich_text': [{'type': 'text', 'text': {'content': stripped[4:]}}]
+            }
+        })
+    # Divider: --- or ———
+    elif stripped in ('---', '———'):
+        children.append({
+            'object': 'block',
+            'type': 'divider',
+            'divider': {}
+        })
+    # Bulleted list: - text
+    elif stripped.startswith('- ') or stripped.startswith('* '):
+        text = stripped[2:]
+        # Handle bold **text**
+        parts = []
+        remaining = text
+        while '**' in remaining:
+            idx = remaining.index('**')
+            if idx > 0:
+                parts.append({'type': 'text', 'text': {'content': remaining[:idx]}})
+            end_idx = remaining.index('**', idx + 2)
+            parts.append({'type': 'text', 'text': {'content': remaining[idx+2:end_idx]}, 'annotations': {'bold': True}})
+            remaining = remaining[end_idx+2:]
+        if remaining:
+            parts.append({'type': 'text', 'text': {'content': remaining}})
+        children.append({
+            'object': 'block',
+            'type': 'bulleted_list_item',
+            'bulleted_list_item': {
+                'rich_text': parts
+            }
+        })
+    # Regular paragraph
+    else:
+        # Handle bold **text** and italic *text*
+        parts = []
+        remaining = stripped
+        while '**' in remaining:
+            idx = remaining.index('**')
+            if idx > 0:
+                parts.append({'type': 'text', 'text': {'content': remaining[:idx]}})
+            end_idx = remaining.index('**', idx + 2) if '**' in remaining[idx+2:] else len(remaining)
+            parts.append({'type': 'text', 'text': {'content': remaining[idx+2:end_idx]}, 'annotations': {'bold': True}})
+            remaining = remaining[end_idx+2:]
+        if remaining:
+            parts.append({'type': 'text', 'text': {'content': remaining}})
+        if not parts:
+            parts = [{'type': 'text', 'text': {'content': stripped}}]
+        children.append({
+            'object': 'block',
+            'type': 'paragraph',
+            'paragraph': {
+                'rich_text': parts
+            }
+        })
+
+# Notion API limit: max 100 blocks per request
+children = children[:100]
+
+payload = {
+    'parent': {'database_id': '$NOTION_DB_ID'},
+    'properties': {
+        'Name': {
+            'title': [{'text': {'content': title}}]
+        }
+    },
+    'children': children
+}
+
+print(json.dumps(payload))
+" "$TITLE" "$BODY")
+
+# Post to Notion
+RESPONSE=$(curl -sS -X POST "https://api.notion.com/v1/pages" \
+  -H "Authorization: Bearer $NOTION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Notion-Version: 2022-06-28" \
+  -d "$PAYLOAD" 2>&1)
+
+# Check result
+PAGE_URL=$(echo "$RESPONSE" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    if data.get('object') == 'page':
+        print(data.get('url', 'success'))
+    else:
+        print('ERROR: ' + data.get('message', json.dumps(data)))
+        sys.exit(1)
+except Exception as e:
+    print('ERROR: ' + str(e))
+    sys.exit(1)
+" 2>&1)
+
+if echo "$PAGE_URL" | grep -q "^ERROR"; then
+  echo "$PAGE_URL" >&2
+  exit 1
+fi
+
+echo "Posted to Notion: $PAGE_URL"

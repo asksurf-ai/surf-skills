@@ -43,6 +43,22 @@ Read the generated file, then rewrite into a human-readable team update with TWO
 
 For summarization format, examples, and rules, see [references/summarization-guide.md](references/summarization-guide.md).
 
-### 3. (Optional) Post to Notion
+### 3. Post to Notion
 
-If the user asks, post the summarized report using the Notion skill.
+Post the summarized report to the **Docs** database in Notion (product-sync workspace).
+
+```bash
+# From a summary file
+scripts/post-to-notion --title "Dev Team Progress — 2026-02-12" --file /tmp/team-progress-2026-02-12-summary.md
+
+# From inline content
+scripts/post-to-notion --title "Dev Team Progress — 2026-02-12" --body "report content here"
+
+# Verify setup
+scripts/post-to-notion --check-setup
+```
+
+- Notion token is loaded from AWS Secrets Manager (`notion/bot`)
+- Database ID: `2e60c7ec-751f-804c-99ec-f5e12e1f571c`
+- Converts markdown (headings, bold, bullets, dividers) to Notion blocks
+- Max 100 blocks per page (Notion API limit)
