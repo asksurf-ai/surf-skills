@@ -74,4 +74,6 @@ scripts/post-to-slack --title "Dev Team Progress — 2026-02-12" --url "https://
 scripts/post-to-slack --check-setup
 ```
 
-- Webhook URL is loaded from AWS Secrets Manager (`slack/dev-progress-webhook`)
+- Bot token is loaded from AWS Secrets Manager (`slack/bot`)
+- Posts to `#team-product` by default (override with `--channel`)
+- Uses `chat.postMessage` API (requires bot to be in the channel)

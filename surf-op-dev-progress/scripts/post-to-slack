@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
-# Posts a Notion link to Slack via incoming webhook.
+# Posts a Notion link to Slack via Bot API (chat.postMessage).
 #
 # Usage:
 #   scripts/post-to-slack --title "Dev Team Progress — 2026-02-12" --url "https://notion.so/..."
 #
-# The script loads the Slack webhook URL from AWS Secrets Manager (slack/dev-progress-webhook).
+# The script loads the Slack bot token from AWS Secrets Manager (slack/bot).
 #
 # Requires: aws, curl, python3
 
 set -euo pipefail
 
-AWS_SECRET_ID="slack/dev-progress-webhook"
+AWS_SECRET_ID="slack/bot"
+CHANNEL="#team-product"
 
 TITLE=""
 URL=""
@@ -19,16 +20,21 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --title) TITLE="$2"; shift 2 ;;
     --url) URL="$2"; shift 2 ;;
+    --channel) CHANNEL="$2"; shift 2 ;;
     --check-setup)
       echo "Checking setup..."
       if ! command -v aws >/dev/null 2>&1; then
         echo "FAIL: aws CLI not found"; exit 1
       fi
-      WEBHOOK=$(aws secretsmanager get-secret-value --secret-id "$AWS_SECRET_ID" --query SecretString --output text 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['url'])" 2>/dev/null) || true
-      if [ -z "$WEBHOOK" ]; then
-        echo "FAIL: Could not fetch slack/dev-progress-webhook from AWS Secrets Manager"; exit 1
+      BOT_TOKEN=$(aws secretsmanager get-secret-value --secret-id "$AWS_SECRET_ID" --query SecretString --output text 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['SLACK_BOT_TOKEN'])" 2>/dev/null) || true
+      if [ -z "$BOT_TOKEN" ]; then
+        echo "FAIL: Could not fetch SLACK_BOT_TOKEN from AWS Secrets Manager ($AWS_SECRET_ID)"; exit 1
       fi
-      echo "OK: Webhook URL loaded (${WEBHOOK:0:45}...)"
+      echo "OK: Bot token loaded (${BOT_TOKEN:0:20}...)"
+      # Test auth
+      AUTH=$(curl -sS "https://slack.com/api/auth.test" -H "Authorization: Bearer $BOT_TOKEN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('user','?') if d['ok'] else 'FAIL: '+d.get('error','unknown'))")
+      echo "OK: Authenticated as $AUTH"
+      echo "OK: Target channel: $CHANNEL"
       echo "Setup OK."
       exit 0
       ;;
@@ -44,31 +50,37 @@ if [ -z "$URL" ]; then
   echo "Error: --url is required" >&2; exit 1
 fi
 
-# Load webhook URL from AWS Secrets Manager
-WEBHOOK=$(aws secretsmanager get-secret-value --secret-id "$AWS_SECRET_ID" --query SecretString --output text | python3 -c "import sys,json; print(json.load(sys.stdin)['url'])")
+# Load bot token from AWS Secrets Manager
+BOT_TOKEN=$(aws secretsmanager get-secret-value --secret-id "$AWS_SECRET_ID" --query SecretString --output text | python3 -c "import sys,json; print(json.load(sys.stdin)['SLACK_BOT_TOKEN'])")
 
-if [ -z "$WEBHOOK" ]; then
-  echo "Error: Could not fetch Slack webhook from AWS Secrets Manager ($AWS_SECRET_ID)" >&2
+if [ -z "$BOT_TOKEN" ]; then
+  echo "Error: Could not fetch SLACK_BOT_TOKEN from AWS Secrets Manager ($AWS_SECRET_ID)" >&2
   exit 1
 fi
 
-# Post to Slack
+# Post to Slack via chat.postMessage
 PAYLOAD=$(python3 -c "
 import json, sys
 title = sys.argv[1]
 url = sys.argv[2]
+channel = sys.argv[3]
 print(json.dumps({
+    'channel': channel,
     'text': f'*{title}*\n{url}'
 }))
-" "$TITLE" "$URL")
+" "$TITLE" "$URL" "$CHANNEL")
 
-RESPONSE=$(curl -sS -X POST "$WEBHOOK" \
-  -H "Content-Type: application/json" \
+RESPONSE=$(curl -sS -X POST "https://slack.com/api/chat.postMessage" \
+  -H "Authorization: Bearer $BOT_TOKEN" \
+  -H "Content-Type: application/json; charset=utf-8" \
   -d "$PAYLOAD" 2>&1)
 
-if [ "$RESPONSE" = "ok" ]; then
-  echo "Posted to Slack: $TITLE"
+OK=$(printf '%s' "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print('ok' if d['ok'] else d.get('error','unknown'))")
+
+if [ "$OK" = "ok" ]; then
+  echo "Posted to Slack ($CHANNEL): $TITLE"
 else
-  echo "Error posting to Slack: $RESPONSE" >&2
+  echo "Error posting to Slack: $OK" >&2
+  echo "Full response: $RESPONSE" >&2
   exit 1
 fi
