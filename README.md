@@ -20,7 +20,7 @@ Claude Code skills for Surf platform development.
 
 ```bash
 # Install / update all skills (no prompts)
-npx skills add cyberconnecthq/surf-skills --all
+npx skills add cyberconnecthq/surf-skills --global --all
 ```
 
 ### Additional Setup for surf-data-db
