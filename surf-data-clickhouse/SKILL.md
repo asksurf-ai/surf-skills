@@ -7,7 +7,7 @@ description: Query ClickHouse Cloud databases for blockchain data (surf) and pro
 
 All paths below are relative to this skill's base directory. Resolve to absolute paths before executing.
 
-Query two ClickHouse Cloud instances via read-only access.
+Query two internally hosted ClickHouse instances via read-only access. The script auto-detects whether it's running inside the k8s cluster (uses HTTP:8123) or externally (uses HTTPS:8443).
 
 ## First-Time Setup Check
 
@@ -24,10 +24,12 @@ Requirements:
 
 ## Instances
 
-| Instance | Secret ID | Purpose |
-|----------|-----------|---------|
-| `surf` | `clickhouse/surf/bot_ro` | Blockchain data: Ethereum transactions, DEX trades, prices, tokens, lending protocols, bridges |
-| `surf-analytics` | `clickhouse/surf-analytics/bot_ro` | Product analytics: users, chat sessions, messages, langfuse traces, posthog events, subscriptions |
+| Instance | Secret ID | Public Host | Internal Host (k8s) | Purpose |
+|----------|-----------|-------------|---------------------|---------|
+| `surf` | `clickhouse/surf/bot_ro` | `clickhouse.ask.surf` | `clickhouse-clickhouse.clickhouse.svc.cluster.local` | Blockchain data: Ethereum transactions, DEX trades, prices, tokens, lending protocols, bridges |
+| `surf-analytics` | `clickhouse/surf-analytics/bot_ro` | `surf-analytics-clickhouse.ask.surf` | `clickhouse-surf-analytics.clickhouse.svc.cluster.local` | Product analytics: users, chat sessions, messages, langfuse traces, posthog events, subscriptions |
+
+**Network auto-detection**: The script checks `KUBERNETES_SERVICE_HOST` to detect if it's running inside a k8s pod. If yes, it uses the internal host via HTTP:8123. Otherwise, it uses the public host via HTTPS:8443.
 
 ## Available Commands
 
@@ -69,10 +71,10 @@ scripts/ch-query --instance analytics --sql "SELECT name, total_rows, formatRead
 
 ## Safety Rules
 
-- **Read-only**: The `bot_ro` user only has SELECT access. Write operations will be rejected by ClickHouse.
+- **Read-only**: The read-only `bot_ro` user only has SELECT/SHOW access. Write operations will be rejected by ClickHouse.
 - **No credentials in chat**: Never display passwords or secret values. The script fetches them from AWS Secrets Manager at runtime.
 - **Large queries**: Always use `LIMIT` when exploring data. Some tables have billions of rows.
-- **Cost awareness**: ClickHouse Cloud charges by compute. Avoid `SELECT *` on large tables without filters.
+- **Large scans**: Avoid `SELECT *` on large tables without filters. Use LIMIT and WHERE clauses.
 
 ## Common Query Patterns
 
@@ -152,5 +154,5 @@ Mocked unit tests don't catch ClickHouse-specific syntax errors (FINAL alias ord
 
 If queries fail:
 1. Check AWS credentials: `aws sts get-caller-identity`
-2. Verify secret exists: `aws secretsmanager get-secret-value --region us-west-2 --secret-id clickhouse/surf/bot_ro --query SecretString --output text | jq .host`
-3. Test connectivity: the script will show the HTTP status code on failure
+2. Verify secret exists: `aws secretsmanager get-secret-value --region us-west-2 --secret-id clickhouse/surf/bot_ro --query SecretString --output text | jq .public_host`
+3. Run setup check: `scripts/ch-query --check-setup` (shows which host/port is selected and connectivity status)

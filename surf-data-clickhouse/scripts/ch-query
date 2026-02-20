@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ClickHouse Cloud query tool
+# ClickHouse query tool (internally hosted)
 # Reads credentials from AWS Secrets Manager, queries via HTTP API
+# Auto-detects internal (k8s) vs external access
 
 REGION="us-west-2"
 
@@ -56,6 +57,11 @@ get_secret() {
     --output text
 }
 
+# Detect if running inside a k8s pod
+is_k8s() {
+  [[ -n "${KUBERNETES_SERVICE_HOST:-}" ]]
+}
+
 get_creds() {
   local instance="$1"
   local secret_id
@@ -67,9 +73,18 @@ get_creds() {
 
   local secret
   secret=$(get_secret "$secret_id")
-  CH_HOST=$(echo "$secret" | jq -r '.host')
   CH_USER=$(echo "$secret" | jq -r '.user')
   CH_PASS=$(echo "$secret" | jq -r '.password')
+
+  if is_k8s; then
+    CH_HOST=$(echo "$secret" | jq -r '.private_host')
+    CH_PROTO="http"
+    CH_PORT="8123"
+  else
+    CH_HOST=$(echo "$secret" | jq -r '.public_host')
+    CH_PROTO="https"
+    CH_PORT="8443"
+  fi
 }
 
 if $CHECK_SETUP; then
@@ -108,14 +123,15 @@ if $CHECK_SETUP; then
     echo ""
     echo "Testing $inst..."
     get_creds "$inst"
+    echo "  Using: ${CH_PROTO}://${CH_HOST}:${CH_PORT} ($(if [ "$CH_PROTO" = "http" ]; then echo "internal"; else echo "public"; fi))"
     response=$(curl -s -o /dev/null -w "%{http_code}" \
-      "https://${CH_HOST}:8443" \
+      "${CH_PROTO}://${CH_HOST}:${CH_PORT}/" \
       --user "${CH_USER}:${CH_PASS}" \
       --data "SELECT 1")
     if [[ "$response" == "200" ]]; then
-      echo "OK: $inst connected (${CH_HOST})"
+      echo "  OK: $inst connected"
     else
-      echo "FAIL: $inst returned HTTP $response"
+      echo "  FAIL: $inst returned HTTP $response"
     fi
   done
 
@@ -142,8 +158,8 @@ get_creds "$INSTANCE"
 SQL=$(printf '%s' "$SQL" | sed -E 's/[[:space:]]+[Ff][Oo][Rr][Mm][Aa][Tt][[:space:]]+[A-Za-z]+[[:space:]]*$//')
 QUERY="${SQL} FORMAT ${FORMAT}"
 
-# Build URL params
-URL="https://${CH_HOST}:8443/"
+# Build URL
+URL="${CH_PROTO}://${CH_HOST}:${CH_PORT}/"
 if [[ -n "$DB" ]]; then
   URL="${URL}?database=${DB}"
 fi

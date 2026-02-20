@@ -7,17 +7,20 @@ Claude Code skills for Surf platform development.
 | Skill | Description | For |
 |-------|-------------|-----|
 | `surf-dev-golang` | Go development guide (muninn, argus) | Backend engineers |
+| `surf-dev-kube` | Kubernetes operations — rollouts, ArgoCD refresh, sealed secrets, pod debugging | DevOps/Backend engineers |
 | `surf-dev-repo-map` | Surf platform repo map — Norse names → purposes, dependencies, bug guide | All engineers |
 | `surf-dev-push-code` | Automate Git workflow (branch, commit, PR, merge) | All engineers |
 | `surf-data-clickhouse` | Query ClickHouse Cloud for blockchain data and product analytics | Data/Analytics engineers |
 | `surf-data-db` | Query staging/production databases via SSH bastion | All engineers |
 | `surf-data-langfuse-trace` | Analyze Langfuse traces for debugging agent execution | AI/Agent engineers |
+| `surf-op-bad-case-audit` | Audit AI bad cases from user feedback with Langfuse traces | AI/Agent engineers |
 | `surf-op-dev-progress` | Daily team progress report from GitHub commits | Team leads |
 
 ## Setup
 
 ```bash
-npx skills add cyberconnecthq/surf-skills
+# Install / update all skills (no prompts)
+npx skills add cyberconnecthq/surf-skills --all
 ```
 
 ### Additional Setup for surf-data-db
