@@ -1,11 +1,11 @@
 ---
 name: surf-dev-kube
-description: Debug and inspect Dagster pipeline runs on Kubernetes (EKS). Use when investigating failed pipeline runs, checking pod logs, diagnosing OOM kills, or inspecting Dagster run status. Use when user says /surf-dev-kube or asks about dagster pods, k8s logs, or pipeline failures.
+description: Kubernetes operations on EKS — manual rollouts, ArgoCD refresh, sealed secrets, pod debugging, and Dagster pipeline inspection. Use when user says /surf-dev-kube or asks about k8s rollout, restart deployment, argocd sync, sealed secrets, dagster pods, k8s logs, or pipeline failures.
 ---
 
-# Kubernetes Debugging for Dagster Pipeline
+# Kubernetes Operations & Debugging
 
-Debug Dagster pipeline runs on EKS. Use this skill to inspect pods, read logs, and diagnose failures.
+Manage deployments, rollouts, sealed secrets, and debug pods on EKS.
 
 ## Cluster Access
 
@@ -22,7 +22,77 @@ kubectl get pods -n dagster | head -5
 
 **IP whitelisting required**: EKS public access CIDRs are managed in `cybertino/gitops` Terraform. If `kubectl` times out, your IP needs whitelisting.
 
-## Pod Layout
+## Manual Rollout & ArgoCD Refresh
+
+When you update secrets, configmaps, or need to force a new deployment rollout:
+
+### 1. Trigger ArgoCD Refresh (pick up gitops changes)
+
+```bash
+# Annotate the ArgoCD application to trigger a refresh
+kubectl patch application <app-name> -n argocd --type merge \
+  -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"normal"}}}'
+
+# Check sync status
+kubectl get application <app-name> -n argocd -o jsonpath='{.status.sync.status} {.status.health.status}'
+```
+
+### 2. Restart Deployment (rolling restart)
+
+```bash
+# Trigger a rolling restart — pods pick up new secrets/configmaps
+kubectl rollout restart deployment/<deployment-name> -n <namespace>
+
+# Watch rollout progress
+kubectl rollout status deployment/<deployment-name> -n <namespace> --timeout=120s
+```
+
+### 3. Verify
+
+```bash
+# Check pods are running with new revision
+kubectl get pods -n <namespace> -l app=<app-label> -o wide
+
+# Check a specific env var is set
+kubectl exec -n <namespace> deployment/<deployment-name> -- env | grep <VAR_NAME>
+```
+
+### Known Apps
+
+| App | Namespace | ArgoCD Application |
+|-----|-----------|-------------------|
+| surfwiki-api | app | surfwiki-api |
+| dagster | dagster | dagster |
+
+## Sealed Secrets
+
+Secrets are managed via Bitnami Sealed Secrets. The sealed-secrets-controller runs in `kube-system`.
+
+### Seal a new secret value
+
+```bash
+kubectl create secret generic <secret-name> \
+  --namespace <namespace> \
+  --from-literal=<KEY>='<value>' \
+  --dry-run=client -o yaml | \
+  kubeseal --format yaml \
+  --controller-name sealed-secrets-controller \
+  --controller-namespace kube-system
+```
+
+Copy the `encryptedData.<KEY>` value into the `sealed-secret.yaml` in the gitops repo, commit, push, then trigger ArgoCD refresh + rollout restart (steps above).
+
+### Verify a secret was unsealed
+
+```bash
+# List all keys in the secret
+kubectl get secret <secret-name> -n <namespace> -o jsonpath='{.data}' | python3 -c "import sys,json; d=json.load(sys.stdin); [print(k) for k in sorted(d.keys())]"
+
+# Decode a specific value
+kubectl get secret <secret-name> -n <namespace> -o jsonpath='{.data.<KEY>}' | base64 -d
+```
+
+## Dagster Pod Layout
 
 | Pod Pattern | Role |
 |-------------|------|
