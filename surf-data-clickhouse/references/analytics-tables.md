@@ -2,7 +2,9 @@
 
 Instance: `surf-analytics` (host resolved from AWS Secrets Manager at runtime)
 
-Single `default` database containing product analytics tables synced from the application.
+Two databases:
+- **`default`** — Product analytics tables synced from the application database + cloud Langfuse export
+- **`langfuse`** — Self-hosted Langfuse (moving to this as primary; sampled at configurable rate via `LANGFUSE_SECONDARY_SAMPLE_RATE` in odin-flow)
 
 ## Tables
 
@@ -66,25 +68,106 @@ Single `default` database containing product analytics tables synced from the ap
 | surf_platform | Nullable(String) | web/ios/android |
 | created_at | DateTime64(3) | |
 
-### `langfuse_traces` — LLM traces (7.6M rows, 335 GiB)
+### `langfuse_traces` — LLM traces from cloud Langfuse export (7.6M rows, 335 GiB)
+
+> **Being replaced by `langfuse.traces`** — cloud export loses application metadata (message_id, user context). Self-hosted Langfuse preserves it.
+
 | Column | Type | Notes |
 |--------|------|-------|
-| id | String | Trace ID |
-| name | Nullable(String) | Trace name |
-| session_id | Nullable(String) | |
-| user_id | String | |
+| id | String | Trace ID (hex hash, e.g. `39f4fc6f487399b00a8b1c07bd19c4d6`) |
+| name | Nullable(String) | Flow name: `AskFast`, `V2_SIMPLE`, `V2_INSTANT`, `V2`, `V2_THINKING`, `Offline Research`, `LangGraph`, `Research` |
+| session_id | Nullable(String) | **Join key to `chat_sessions.id`** (cast with `toString()` — session_id is UUID in chat tables, String here) |
+| user_id | String | App user UUID |
 | timestamp | DateTime64(3) | |
 | environment | Nullable(String) | |
 | project_id | Nullable(String) | |
-| metadata | Nullable(String) | JSON metadata |
+| metadata | Nullable(String) | **Only SDK telemetry** (`resourceAttributes`, `scope`). Does NOT contain `message_id` or app context. |
 | tags | Array(String) | |
 | input | Nullable(String) | JSON input |
 | output | Nullable(String) | JSON output |
 
-### `langfuse_observations` — LLM observations (129M rows, 1.29 TiB)
-Detailed LLM call observations. Largest table.
+### `langfuse_observations` — LLM observations from cloud export (129M rows, 1.29 TiB)
+Detailed LLM call observations. Largest table. Being replaced by `langfuse.observations`.
 
 ### `langfuse_scores` — LLM evaluation scores (633K rows)
+
+---
+
+## `langfuse` Database — Self-Hosted Langfuse
+
+Self-hosted Langfuse writes directly to the `langfuse` database. This is the preferred source for tracing data — it preserves full application metadata including `message_id` for direct joins.
+
+### `langfuse.traces` — LLM traces from self-hosted Langfuse
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | String | Trace ID |
+| name | String | Flow name (same values as cloud: `AskFast`, `V2_SIMPLE`, etc.) |
+| session_id | String | **Join key to `chat_sessions.id`** |
+| user_id | String | App user UUID |
+| timestamp | DateTime64(3) | |
+| metadata | Map(LowCardinality(String), String) | **Full app context** — see below |
+| input | Nullable(String) | User's message text |
+| output | Nullable(String) | AI response |
+| project_id | String | Langfuse project ID |
+| environment | LowCardinality(String) | `production`, `enterprise` |
+| created_at | DateTime64(3) | |
+| updated_at | DateTime64(3) | |
+| event_ts | DateTime64(3) | |
+| is_deleted | UInt8 | |
+
+**Metadata contains** (Map keys): `message_id`, `user_id`, `user_email`, `user_twitter_handle`, `session_type`, `run_id`, `user_subscription_type`, `reasoning_effort`, `io_type`, `is_deep_research`, `integration_test`, `tags`.
+
+### `langfuse.observations` — LLM observations from self-hosted Langfuse
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | String | Observation ID |
+| trace_id | String | FK to `langfuse.traces.id` |
+| type | LowCardinality(String) | `GENERATION`, `SPAN` |
+| name | String | Operation name |
+| start_time | DateTime64(3) | |
+| end_time | Nullable(DateTime64(3)) | |
+| metadata | Map(LowCardinality(String), String) | Typed map |
+| provided_model_name | Nullable(String) | LLM model used |
+| usage_details | Map(LowCardinality(String), UInt64) | Token counts (`input`, `output`, `total`) |
+| cost_details | Map(LowCardinality(String), Decimal(18,12)) | Cost breakdown |
+| total_cost | Nullable(Decimal(18,12)) | |
+| input | Nullable(String) | |
+| output | Nullable(String) | |
+
+---
+
+## Joining Chat Messages to Langfuse Traces
+
+> **CRITICAL — Linking `chat_messages` to traces:**
+>
+> There is **no shared ID** between `chat_messages.id` and trace `id`. The trace ID is a hex hash, the message ID is a UUID.
+>
+> **Self-hosted (`langfuse.traces`)** — use `metadata['message_id']` for a direct 1:1 join:
+> ```sql
+> SELECT m.id, m.human_message, t.id as trace_id, t.name as flow
+> FROM default.chat_messages m
+> INNER JOIN langfuse.traces t ON m.id = t.metadata['message_id']
+> WHERE m.created_at >= today() - 1
+> ```
+>
+> **Cloud export (`default.langfuse_traces`)** — no `message_id` in metadata. Join via `session_id` + timestamp proximity:
+> ```sql
+> -- Session-level: match messages to traces by session_id
+> -- (requires toString() cast since chat tables use UUID, traces use String)
+> SELECT m.id, m.human_message, t.id as trace_id, t.name as flow
+> FROM default.chat_messages m
+> INNER JOIN default.langfuse_traces t
+>     ON toString(m.session_id) = t.session_id
+>     AND abs(dateDiff('millisecond', m.created_at, t.timestamp)) < 1000
+> WHERE m.created_at >= today() - 1
+>     AND t.name NOT IN ('XAIChatModel', 'ChatLiteLLMRouter', 'fallback_grok')
+> ```
+>
+> **Flow-level trace names** (1:1 with messages): `AskFast`, `V2_SIMPLE`, `V2_INSTANT`, `V2`, `V2_THINKING`, `Offline Research`, `LangGraph`, `Research`
+>
+> **Sub-traces to exclude** when counting per-message: `XAIChatModel`, `ChatLiteLLMRouter`, `fallback_grok`, `project_desc_review_agent`
 
 ### `posthog_events` — Product analytics events (16.5M rows)
 | Column | Type | Notes |
