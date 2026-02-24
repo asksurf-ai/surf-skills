@@ -16,6 +16,11 @@ normalize_author() {
     Ryan|"Ryan Li"|ryanli) echo "Ryan Li" ;;
     JamesDaizs|"James Dai"|"james dai") echo "James Dai" ;;
     hughzhou-gif|"Hugh Zhou"|hughzhou) echo "Hugh Zhou" ;;
+    PengDeng|"Peng Deng"|pengdeng) echo "Peng Deng" ;;
+    HappySean|"Sean Zhao"|happysean) echo "Sean Zhao" ;;
+    joshua426x6|"Joshua Jiang") echo "Joshua Jiang" ;;
+    Darclindy|"Shaoqing Huang"|darclindy) echo "Shaoqing Huang" ;;
+    Agiose|"Gio Li"|agiose) echo "Gio Li" ;;
     *) echo "$name" ;;
   esac
 }
