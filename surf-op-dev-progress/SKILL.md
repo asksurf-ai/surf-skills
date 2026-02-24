@@ -63,7 +63,9 @@ scripts/post-to-notion --check-setup
 - Converts markdown (headings, bold, bullets, dividers) to Notion blocks
 - Max 100 blocks per page (Notion API limit)
 
-### 4. Post Notion link to Slack
+### 4. Post Notion link to Slack (manual runs only)
+
+> **Note:** When run via OpenClaw cron, skip this step — OpenClaw's `announce` delivery posts the summary to `#team-product` automatically.
 
 Share the Notion page URL in Slack so the team gets notified.
 
@@ -74,6 +76,5 @@ scripts/post-to-slack --title "Dev Team Progress — 2026-02-12" --url "https://
 scripts/post-to-slack --check-setup
 ```
 
-- Bot token is loaded from AWS Secrets Manager (`slack/bot`)
-- Posts to `#team-product` by default (override with `--channel`)
-- Uses `chat.postMessage` API (requires bot to be in the channel)
+- Webhook URL is loaded from AWS Secrets Manager (`slack/dev-progress-webhook`)
+- Posts to `#team-product` by default
