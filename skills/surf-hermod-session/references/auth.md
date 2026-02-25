@@ -1,82 +1,126 @@
 # Hermod Authentication Architecture
 
-## Request Flow
+## Login → Session → API Call Flow
 
 ```
-Client Request
+User
   │
-  │  Authorization: Bearer <JWT>
+  ├─ Google OAuth (Browser) ───────────────────────────────┐
+  │   1. surf-session login → opens browser                │
+  │   2. User clicks Google account                        │
+  │   3. Browser sends credential to local server          │
+  │   4. POST /muninn/v2/auth/oauth/google                 │
+  │      {"credentials": "<google_id_token>"}              │
+  │   → {"data": {"access_token":"...","refresh_token":"..."}}
+  │                                                        │
+  ▼                                                        │
+~/.surf-core/session.json  ◄───────────────────────────────┘
+  │  hermod_token (access_token, 1h)
+  │  refresh_token (30d)
+  │
+  ▼
+surf-core Skills (surf-trading, surf-wallet, etc.)
+  │
+  │  Authorization: Bearer <access_token>
+  │  (auto-refresh if <5min remaining)
   │
   ▼
 Hermod Gateway
   │
-  ├─ 1. JWT Verification
-  │     - Algorithm: RS256 (RSA-SHA256)
-  │     - Verify signature with RSA public key
-  │     - Check token not expired (exp claim)
-  │     - Extract user_id from payload
-  │
-  ├─ 2. User Plan Lookup
-  │     - Query UserPlan table by user_id
-  │     - Determine plan_type (UNLIMITED, BASIC, etc.)
-  │
+  ├─ 1. JWT Verification (RS256 with RSA public key)
+  ├─ 2. User Plan Lookup (by user_id from JWT sub claim)
   ├─ 3. Credit Check & Deduction
-  │     ├─ UNLIMITED plan → skip balance check, record usage only
-  │     └─ Other plans → verify sufficient balance → atomic deduct → record usage
-  │
-  └─ 4. Reverse Proxy
-        - Strip original Authorization header
-        - Inject upstream API key (per endpoint config)
-        - Forward request to upstream service
-        - Return response to client
+  └─ 4. Reverse Proxy → Upstream API (inject API keys server-side)
 ```
 
-## JWT Structure
+## Muninn Auth Endpoints (V2)
 
-**Header:**
+Base URL: `https://api.stg.ask.surf/muninn`
+
+### POST /v2/auth/oauth/google
+Login with Google OAuth ID token.
+
+Request:
+```json
+{"credentials": "<google_id_token>", "platform": "WEB"}
+```
+
+Response:
 ```json
 {
-  "alg": "RS256",
-  "typ": "JWT"
+  "success": true,
+  "data": {
+    "access_token": "eyJ...",
+    "refresh_token": "uuid",
+    "is_registered": false,
+    "from_invitation": false
+  }
 }
 ```
 
-**Payload:**
+### POST /v2/auth/refresh
+Refresh access token.
+
+Request:
+```json
+{"refresh_token": "uuid-from-login"}
+```
+
+Response:
 ```json
 {
-  "user_id": "00000000-0000-0000-0000-000000000099",
-  "deploy_id": null,
-  "ssid": null,
-  "exp": 1772001600
+  "success": true,
+  "data": {
+    "access_token": "eyJ...(new)",
+    "refresh_token": "uuid (same, expiry extended)"
+  }
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| user_id | UUID | Required. Hermod uses this to look up plan and credits |
-| deploy_id | UUID or null | Optional. Set when request comes from a bifrost deployment |
-| ssid | UUID or null | Optional. Sandbox session ID for agent sessions |
-| exp | int | Required. Unix timestamp for token expiration |
+## Token Lifetimes
 
-## Environments
+| Token | Lifetime | Storage |
+|-------|----------|---------|
+| access_token | 1 hour | JWT (stateless) |
+| refresh_token | 30 days | DB (revocable) |
 
-| Environment | Hermod URL |
-|-------------|-----------|
-| Production | `https://api.asksurf.ai/gateway` |
-| Staging | `https://api.stg.ask.surf/gateway` |
+## JWT Payload
+
+```json
+{
+  "sub": "user-uuid",
+  "iss": "https://asksurf.ai",
+  "aud": ["https://asksurf.ai"],
+  "iat": 1740000000,
+  "exp": 1740003600
+}
+```
+
+Hermod uses the `sub` claim to look up user plan and credit balance.
+
+## Auto-Refresh Logic
+
+`lib/config.sh` runs on every skill invocation:
+
+1. Load `access_token` from session file
+2. Decode JWT, check `exp` claim
+3. If expires within 5 minutes and `refresh_token` exists:
+   - Call `POST /muninn/v2/auth/refresh`
+   - Update session file with new `access_token`
+4. Proceed with API call using valid token
+
+This means a user only needs to login once every 30 days.
 
 ## Credit System
 
 - Each API call costs credits (1-5 per request, varies by endpoint)
 - Credits are deducted atomically per request
 - UNLIMITED plans bypass balance checks but still record usage
-- Credit usage is logged with: endpoint, path, method, cost, balance before/after
 
 ## Security Notes
 
-- Client only needs the JWT — never handles API keys for upstream services
-- Hermod injects upstream API keys server-side (header, query param, bearer, or path)
+- Client only needs the JWT — never handles upstream API keys
+- Hermod injects upstream API keys server-side
 - Original JWT is stripped before forwarding to prevent token leakage
-- All requests are rate-limited per client IP
-- Request body max size: 10MB
-- Query string max length: 8,192 characters
+- Session file is chmod 600 (owner-only)
+- Refresh tokens are stored in Muninn DB and can be revoked server-side

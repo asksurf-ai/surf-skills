@@ -22,20 +22,21 @@ surf-core/
 
 ## Getting Started (Session Setup)
 
-**Before using any data skill, you must configure a Hermod session:**
+**Before using any data skill, you must login to Hermod:**
 
 ```bash
-# 1. Configure session with JWT (issued by Muninn)
-skills/surf-hermod-session/scripts/surf-session configure --token <JWT>
+# Google Sign-In (opens browser, one-click)
+skills/surf-hermod-session/scripts/surf-session login
+# → Opens browser, user clicks Google account, session saved automatically.
 
-# 2. Verify connectivity
+# Verify connectivity
 skills/surf-hermod-session/scripts/surf-session check
 
-# 3. Now use any data skill
-skills/surf-trading-data/scripts/surf-trading price --symbol BTC
+# Now use any data skill
+skills/surf-trading-data/scripts/surf-trading price --ids bitcoin --vs usd
 ```
 
-Session is persisted to `~/.surf-core/session.json` — all skills auto-load from this file. Environment variables (`HERMOD_TOKEN`, `HERMOD_URL`) override the file if set.
+Session is persisted to `~/.surf-core/session.json` with both `access_token` (1h) and `refresh_token` (30d). All skills auto-load and auto-refresh from this file — **login once, use for 30 days**. Environment variables (`HERMOD_TOKEN`, `HERMOD_URL`) override the file if set.
 
 ## Design Principles
 
