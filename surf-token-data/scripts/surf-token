@@ -29,9 +29,9 @@ usage() {
     "exchange-flow":    {"args": "--asset btc --flow-type netflow [--exchange all_exchange] [--window day] [--limit 3]", "description": "CryptoQuant exchange flow (1 credit)"},
     "etf-flow":         {"args": "--type us-btc-spot", "description": "SoSoValue ETF flow (1 credit). Types: us-btc-spot, us-eth-spot"},
     "exchange-reserve": {"args": "--asset btc [--exchange all_exchange] [--window day] [--limit 3]", "description": "CryptoQuant exchange reserve (1 credit)"},
-    "moralis-holders":  {"args": "--token ADDR [--chain eth]", "description": "Moralis top holders (2 credits, proxy). Chains: eth, bsc, polygon, arbitrum, base, avalanche, optimism, linea, fantom, cronos"},
-    "moralis-meta":     {"args": "--token ADDR [--chain eth]", "description": "Moralis token metadata (2 credits, proxy). Chains: eth, bsc, polygon, arbitrum, base, avalanche, optimism, linea, fantom, cronos"},
-    "moralis-transfers":{"args": "--token ADDR [--chain eth] [--limit 100]", "description": "Moralis token transfers (2 credits, proxy). Chains: eth, bsc, polygon, arbitrum, base, avalanche, optimism, linea, fantom, cronos"},
+    "moralis-holders":  {"args": "--token ADDR", "description": "Moralis top holders (2 credits, proxy)"},
+    "moralis-meta":     {"args": "--token ADDR", "description": "Moralis token metadata (2 credits, proxy)"},
+    "moralis-transfers":{"args": "--token ADDR", "description": "Moralis token transfers (2 credits, proxy)"},
     "moralis-price":    {"args": "--token ADDR [--chain eth]", "description": "Moralis token price with DEX data (2 credits, proxy). Chains: eth, bsc, polygon, arbitrum, base, avalanche, optimism, linea, fantom, cronos"},
     "moralis-search":   {"args": "--query NAME [--chain eth] [--limit 5] [--cursor TOKEN]", "description": "Search tokens by name/symbol (2 credits, proxy). Chains: all EVM + solana"},
     "moralis-trending": {"args": "[--chain eth] [--limit 10]", "description": "Trending tokens by chain (2 credits, proxy). Chains: eth, bsc, polygon, arbitrum, base, avalanche, optimism, linea, fantom, cronos, solana, etc."},
@@ -87,22 +87,22 @@ case "${1:---help}" in
 
   # Moralis proxy
   moralis-holders)
-    shift; token=""; chain="eth"
-    while [[ $# -gt 0 ]]; do case "$1" in --token) token="$2"; shift 2 ;; --chain) chain="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1. Valid: --token, --chain\"}" >&2; exit 1 ;; esac; done
+    shift; token=""
+    while [[ $# -gt 0 ]]; do case "$1" in --token) token="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1. Valid: --token\"}" >&2; exit 1 ;; esac; done
     [[ -z "$token" ]] && { echo '{"error": "--token is required (ERC-20 contract address)"}' >&2; exit 1; }
-    surf_proxy_get "moralis" "/api/v2.2/erc20/${token}/owners" "chain=${chain}&order=DESC&limit=100"
+    surf_proxy_get "moralis" "/erc20/${token}/owners" "order=DESC"
     ;;
   moralis-meta)
-    shift; token=""; chain="eth"
-    while [[ $# -gt 0 ]]; do case "$1" in --token) token="$2"; shift 2 ;; --chain) chain="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1. Valid: --token, --chain\"}" >&2; exit 1 ;; esac; done
+    shift; token=""
+    while [[ $# -gt 0 ]]; do case "$1" in --token) token="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1. Valid: --token\"}" >&2; exit 1 ;; esac; done
     [[ -z "$token" ]] && { echo '{"error": "--token is required (ERC-20 contract address)"}' >&2; exit 1; }
-    surf_proxy_get "moralis" "/api/v2.2/erc20/metadata" "chain=${chain}&addresses[]=${token}"
+    surf_proxy_get "moralis" "/erc20/metadata" "addresses[]=${token}"
     ;;
   moralis-transfers)
-    shift; token=""; chain="eth"; limit="100"
-    while [[ $# -gt 0 ]]; do case "$1" in --token) token="$2"; shift 2 ;; --chain) chain="$2"; shift 2 ;; --limit) limit="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1. Valid: --token, --chain, --limit\"}" >&2; exit 1 ;; esac; done
+    shift; token=""
+    while [[ $# -gt 0 ]]; do case "$1" in --token) token="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1. Valid: --token\"}" >&2; exit 1 ;; esac; done
     [[ -z "$token" ]] && { echo '{"error": "--token is required (ERC-20 contract address)"}' >&2; exit 1; }
-    surf_proxy_get "moralis" "/api/v2.2/erc20/${token}/transfers" "chain=${chain}&limit=${limit}"
+    surf_proxy_get "moralis" "/erc20/${token}/transfers"
     ;;
 
   moralis-price)
