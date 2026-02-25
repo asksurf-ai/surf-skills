@@ -1,0 +1,610 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Dagster query tool — talks to Dagster GraphQL API via kubectl exec into the webserver pod.
+# No port-forward needed; all queries run inside the pod via python3 + urllib.
+
+NAMESPACE="dagster"
+WEBSERVER_LABEL="component=dagster-webserver"
+GRAPHQL_URL="http://localhost:80/graphql"
+
+# --- helpers ---
+
+usage() {
+  cat <<EOF
+Usage: dagster-query <command> [options]
+
+Commands:
+  --check-setup             Verify kubectl access and Dagster connectivity
+  --locations               List code locations and their jobs
+  --runs [options]          List recent runs
+    --status <status>       Filter: SUCCESS, FAILURE, STARTED, CANCELED, QUEUED
+    --job <name>            Filter by job name (substring match)
+    --limit <n>             Max results (default: 10)
+  --run-detail <run-id>     Show run detail + step stats + log events
+    --log-limit <n>         Number of log events (default: 50)
+    --step <name>           Filter logs to a specific step (substring match)
+  --run-logs <run-id>       Show full log events for a run
+    --log-limit <n>         Number of log events (default: 200)
+    --failures-only         Only show failure/error events (with full stack traces)
+    --step <name>           Filter logs to a specific step (substring match)
+  --schedules               List all schedules and their status
+  --sensors                 List all sensors and their status
+  --job-info <job> [opts]   Show job config schema, presets, and tags
+    --location <name>       Code location (required if ambiguous)
+  --launch <job> [options]  Launch a job (requires confirmation)
+    --location <name>       Code location (required if ambiguous)
+    --repository <name>     Repository name (default: __repository__)
+    --preset <name>         Use a named preset
+    --run-config <json>     Run config as JSON string
+  --retry <run-id>          Re-execute a failed run from failure point
+    --all-steps             Re-execute all steps instead of from failure
+  --terminate <run-id>      Terminate a running job
+    --force                 Force cancel immediately (skip graceful shutdown)
+  --schedule-on <name>      Start a schedule
+  --schedule-off <name>     Stop a schedule
+    --location <name>       Code location (required if ambiguous)
+  --sensor-on <name>        Start a sensor
+  --sensor-off <name>       Stop a sensor
+    --location <name>       Code location (required if ambiguous)
+  -h, --help                Show this help
+EOF
+  exit 0
+}
+
+find_webserver_pod() {
+  local pod
+  pod=$(kubectl get pods -n "$NAMESPACE" -l "$WEBSERVER_LABEL" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+  if [[ -z "$pod" ]]; then
+    # Fallback: find by name pattern
+    pod=$(kubectl get pods -n "$NAMESPACE" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | grep dagster-webserver | head -1)
+  fi
+  echo "$pod"
+}
+
+run_gql() {
+  local pod="$1"
+  local query="$2"
+  kubectl exec -n "$NAMESPACE" "$pod" -c dagster -- python3 -c "
+import urllib.request, json, sys
+req = urllib.request.Request('$GRAPHQL_URL',
+    data=json.dumps({'query': '''$query'''}).encode(),
+    headers={'Content-Type': 'application/json'})
+try:
+    resp = urllib.request.urlopen(req, timeout=30)
+    print(resp.read().decode())
+except Exception as e:
+    body = e.read().decode()[:1000] if hasattr(e, 'read') else str(e)
+    print(json.dumps({'error': body}), file=sys.stderr)
+    sys.exit(1)
+"
+}
+
+# For complex queries, pipe a python script via stdin
+run_py() {
+  local pod="$1"
+  shift
+  kubectl exec -in "$NAMESPACE" "$pod" -c dagster -- python3 "$@"
+}
+
+# --- commands ---
+
+check_setup() {
+  echo "Checking setup..."
+
+  # kubectl
+  if ! command -v kubectl &>/dev/null; then
+    echo "FAIL: kubectl not found"
+    exit 1
+  fi
+  echo "OK: kubectl found"
+
+  # cluster access
+  if ! kubectl cluster-info &>/dev/null 2>&1; then
+    echo "FAIL: Cannot connect to k8s cluster. Run: aws eks update-kubeconfig --region us-west-2 --name prd-app"
+    exit 1
+  fi
+  echo "OK: k8s cluster accessible"
+
+  # find webserver pod
+  local pod
+  pod=$(find_webserver_pod)
+  if [[ -z "$pod" ]]; then
+    echo "FAIL: Dagster webserver pod not found in namespace $NAMESPACE"
+    exit 1
+  fi
+  echo "OK: Webserver pod: $pod"
+
+  # test GraphQL
+  local result
+  result=$(run_gql "$pod" "{ version }")
+  local version
+  version=$(echo "$result" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['version'])" 2>/dev/null)
+  if [[ -z "$version" ]]; then
+    echo "FAIL: GraphQL API not responding"
+    exit 1
+  fi
+  echo "OK: Dagster version $version"
+
+  # list locations
+  local loc_result
+  loc_result=$(run_gql "$pod" 'query { workspaceOrError { ... on Workspace { locationEntries { name loadStatus } } } }')
+  echo ""
+  echo "Code Locations:"
+  echo "$loc_result" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+entries = data['data']['workspaceOrError']['locationEntries']
+for e in entries:
+    status = 'OK' if e['loadStatus'] == 'LOADED' else e['loadStatus']
+    print(f\"  {e['name']}: {status}\")
+"
+  echo ""
+  echo "Setup check complete."
+}
+
+list_locations() {
+  local pod
+  pod=$(find_webserver_pod)
+
+  local result
+  result=$(run_gql "$pod" 'query { workspaceOrError { ... on Workspace { locationEntries { name loadStatus locationOrLoadError { ... on RepositoryLocation { repositories { name jobs { name } schedules { name scheduleState { status } } sensors { name sensorState { status } } } } ... on PythonError { message } } } } } }')
+
+  echo "$result" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+entries = data['data']['workspaceOrError']['locationEntries']
+for loc in entries:
+    status_icon = 'OK' if loc['loadStatus'] == 'LOADED' else 'ERR'
+    print(f\"[{status_icon}] {loc['name']}\")
+    loe = loc.get('locationOrLoadError', {})
+    if 'message' in loe:
+        print(f\"    Error: {loe['message'][:200]}\")
+        continue
+    for repo in loe.get('repositories', []):
+        jobs = [j['name'] for j in repo.get('jobs', []) if not j['name'].startswith('__')]
+        if jobs:
+            print(f\"    Jobs ({len(jobs)}): {', '.join(sorted(jobs))}\")
+        schedules = [(s['name'], s.get('scheduleState', {}).get('status', '?')) for s in repo.get('schedules', [])]
+        if schedules:
+            running = [s for s, st in schedules if st == 'RUNNING']
+            stopped = [s for s, st in schedules if st != 'RUNNING']
+            if running:
+                print(f\"    Schedules running ({len(running)}): {', '.join(sorted(running))}\")
+            if stopped:
+                print(f\"    Schedules stopped ({len(stopped)}): {', '.join(sorted(stopped))}\")
+    print()
+"
+}
+
+list_runs() {
+  local pod status_filter="" job_filter="" limit=10
+  pod=$(find_webserver_pod)
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --status) status_filter="$2"; shift 2 ;;
+      --job) job_filter="$2"; shift 2 ;;
+      --limit) limit="$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  # Build filter
+  local filter_parts=()
+  if [[ -n "$status_filter" ]]; then
+    filter_parts+=("statuses: [${status_filter}]")
+  fi
+  local filter=""
+  if [[ ${#filter_parts[@]} -gt 0 ]]; then
+    filter="filter: { $(IFS=', '; echo "${filter_parts[*]}") }, "
+  fi
+
+  local query="query { runsOrError(${filter}limit: ${limit}) { ... on Runs { count results { runId jobName status startTime endTime repositoryOrigin { repositoryLocationName } tags { key value } } } } }"
+
+  local result
+  result=$(run_gql "$pod" "$query")
+
+  echo "$result" | python3 -c "
+import sys, json
+from datetime import datetime
+
+data = json.load(sys.stdin)
+runs_data = data['data']['runsOrError']
+count = runs_data.get('count', 0)
+results = runs_data.get('results', [])
+
+job_filter = '$job_filter'.lower()
+if job_filter:
+    results = [r for r in results if job_filter in r['jobName'].lower()]
+
+print(f'Total runs: {count}  (showing {len(results)})')
+print()
+
+status_icons = {
+    'SUCCESS': 'OK',
+    'FAILURE': 'FAIL',
+    'STARTED': 'RUN',
+    'CANCELED': 'CNCL',
+    'QUEUED': 'WAIT',
+    'CANCELING': 'STOP',
+    'STARTING': 'INIT',
+}
+
+for r in results:
+    status = r['status']
+    icon = status_icons.get(status, status[:4])
+    loc = r.get('repositoryOrigin', {}).get('repositoryLocationName', '?')
+    start = datetime.fromtimestamp(r['startTime']).strftime('%m-%d %H:%M') if r.get('startTime') else '?'
+    duration = ''
+    if r.get('startTime') and r.get('endTime'):
+        d = r['endTime'] - r['startTime']
+        if d < 60:
+            duration = f'{d:.0f}s'
+        elif d < 3600:
+            duration = f'{d/60:.0f}m'
+        else:
+            duration = f'{d/3600:.1f}h'
+    run_id_short = r['runId'][:8]
+    print(f'[{icon:>4}] {start}  {duration:>5}  {loc}/{r[\"jobName\"]}  ({run_id_short})')
+"
+}
+
+run_detail() {
+  local pod run_id="$1" log_limit=50 extra_args=()
+  pod=$(find_webserver_pod)
+  shift
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --log-limit) log_limit="$2"; shift 2 ;;
+      --step) extra_args+=(--step "$2"); shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  cat "$script_dir/_gql_helper.py" | run_py "$pod" - run-detail "$run_id" "$log_limit" ${extra_args[@]+"${extra_args[@]}"}
+}
+
+run_logs() {
+  local pod run_id="$1" log_limit=200 extra_args=()
+  pod=$(find_webserver_pod)
+  shift
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --log-limit) log_limit="$2"; shift 2 ;;
+      --failures-only) extra_args+=("--failures-only"); shift ;;
+      --step) extra_args+=(--step "$2"); shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  cat "$script_dir/_gql_helper.py" | run_py "$pod" - run-logs "$run_id" "$log_limit" ${extra_args[@]+"${extra_args[@]}"}
+}
+
+list_schedules() {
+  local pod
+  pod=$(find_webserver_pod)
+
+  run_py "$pod" << 'PYEOF'
+import urllib.request, json
+
+def gql(query):
+    req = urllib.request.Request("http://localhost:80/graphql",
+        data=json.dumps({"query": query}).encode(),
+        headers={"Content-Type": "application/json"})
+    resp = urllib.request.urlopen(req, timeout=30)
+    return json.loads(resp.read())
+
+r = gql("""query {
+  workspaceOrError {
+    ... on Workspace {
+      locationEntries {
+        name
+        locationOrLoadError {
+          ... on RepositoryLocation {
+            repositories {
+              name
+              schedules {
+                name
+                cronSchedule
+                scheduleState { status }
+                futureTicks(limit: 1) { results { timestamp } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}""")
+
+from datetime import datetime
+entries = r["data"]["workspaceOrError"]["locationEntries"]
+for loc in entries:
+    loe = loc.get("locationOrLoadError", {})
+    repos = loe.get("repositories", [])
+    for repo in repos:
+        schedules = repo.get("schedules", [])
+        if not schedules:
+            continue
+        print(f"[{loc['name']}]")
+        for s in sorted(schedules, key=lambda x: x["name"]):
+            status = s.get("scheduleState", {}).get("status", "?")
+            icon = "ON " if status == "RUNNING" else "OFF"
+            cron = s.get("cronSchedule", "?")
+            next_tick = ""
+            ticks = s.get("futureTicks", {}).get("results", [])
+            if ticks:
+                next_tick = datetime.fromtimestamp(ticks[0]["timestamp"]).strftime("%m-%d %H:%M")
+            print(f"  [{icon}] {s['name']:<50} {cron:<20} next: {next_tick}")
+        print()
+PYEOF
+}
+
+list_sensors() {
+  local pod
+  pod=$(find_webserver_pod)
+
+  run_py "$pod" << 'PYEOF'
+import urllib.request, json
+
+def gql(query):
+    req = urllib.request.Request("http://localhost:80/graphql",
+        data=json.dumps({"query": query}).encode(),
+        headers={"Content-Type": "application/json"})
+    resp = urllib.request.urlopen(req, timeout=30)
+    return json.loads(resp.read())
+
+r = gql("""query {
+  workspaceOrError {
+    ... on Workspace {
+      locationEntries {
+        name
+        locationOrLoadError {
+          ... on RepositoryLocation {
+            repositories {
+              name
+              sensors {
+                name
+                sensorState { status }
+                sensorType
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}""")
+
+entries = r["data"]["workspaceOrError"]["locationEntries"]
+for loc in entries:
+    loe = loc.get("locationOrLoadError", {})
+    repos = loe.get("repositories", [])
+    for repo in repos:
+        sensors = repo.get("sensors", [])
+        if not sensors:
+            continue
+        print(f"[{loc['name']}]")
+        for s in sorted(sensors, key=lambda x: x["name"]):
+            status = s.get("sensorState", {}).get("status", "?")
+            icon = "ON " if status == "RUNNING" else "OFF"
+            stype = s.get("sensorType", "")
+            print(f"  [{icon}] {s['name']:<50} {stype}")
+        print()
+PYEOF
+}
+
+resolve_location() {
+  local pod="$1" job_name="$2"
+  run_gql "$pod" 'query { workspaceOrError { ... on Workspace { locationEntries { name locationOrLoadError { ... on RepositoryLocation { repositories { name jobs { name } } } } } } } }' | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+entries = data['data']['workspaceOrError']['locationEntries']
+matches = []
+for loc in entries:
+    loe = loc.get('locationOrLoadError', {})
+    for repo in loe.get('repositories', []):
+        for job in repo.get('jobs', []):
+            if job['name'] == '$job_name':
+                matches.append(loc['name'])
+if len(matches) == 1:
+    print(matches[0])
+elif len(matches) > 1:
+    print('AMBIGUOUS:' + ','.join(matches), file=sys.stderr)
+else:
+    print('NOT_FOUND', file=sys.stderr)
+" 2>&1
+}
+
+job_info() {
+  local pod job_name="$1" location="" repository="__repository__"
+  pod=$(find_webserver_pod)
+  shift
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --location) location="$2"; shift 2 ;;
+      --repository) repository="$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  if [[ -z "$location" ]]; then
+    location=$(resolve_location "$pod" "$job_name")
+    if [[ "$location" == *"AMBIGUOUS"* ]]; then
+      echo "Error: Job '$job_name' found in multiple locations: ${location#AMBIGUOUS:}"
+      echo "Use --location <name> to specify."
+      exit 1
+    fi
+    if [[ -z "$location" || "$location" == *"NOT_FOUND"* ]]; then
+      echo "Error: Job '$job_name' not found in any code location."
+      exit 1
+    fi
+  fi
+
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  cat "$script_dir/_gql_helper.py" | run_py "$pod" - job-info "$location" "$job_name" "$repository"
+}
+
+launch_job() {
+  local pod job_name="$1" location="" repository="__repository__" preset="" run_config=""
+  pod=$(find_webserver_pod)
+  shift
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --location) location="$2"; shift 2 ;;
+      --repository) repository="$2"; shift 2 ;;
+      --preset) preset="$2"; shift 2 ;;
+      --run-config) run_config="$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  if [[ -z "$location" ]]; then
+    location=$(resolve_location "$pod" "$job_name")
+    if [[ "$location" == *"AMBIGUOUS"* ]]; then
+      echo "Error: Job '$job_name' found in multiple locations: ${location#AMBIGUOUS:}"
+      echo "Use --location <name> to specify."
+      exit 1
+    fi
+    if [[ -z "$location" || "$location" == *"NOT_FOUND"* ]]; then
+      echo "Error: Job '$job_name' not found in any code location."
+      exit 1
+    fi
+  fi
+
+  local script_dir extra_args=()
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+  if [[ -n "$preset" ]]; then
+    extra_args+=(--preset "$preset")
+  fi
+  if [[ -n "$run_config" ]]; then
+    extra_args+=(--run-config "$run_config")
+  fi
+
+  cat "$script_dir/_gql_helper.py" | run_py "$pod" - launch "$location" "$job_name" "$repository" ${extra_args[@]+"${extra_args[@]}"}
+}
+
+retry_run() {
+  local pod run_id="$1" strategy="FROM_FAILURE"
+  pod=$(find_webserver_pod)
+  shift
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --all-steps) strategy="ALL_STEPS"; shift ;;
+      *) shift ;;
+    esac
+  done
+
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  cat "$script_dir/_gql_helper.py" | run_py "$pod" - reexecute "$run_id" "$strategy"
+}
+
+terminate_run() {
+  local pod run_id="$1" extra_args=()
+  pod=$(find_webserver_pod)
+  shift
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --force) extra_args+=(--force); shift ;;
+      *) shift ;;
+    esac
+  done
+
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  cat "$script_dir/_gql_helper.py" | run_py "$pod" - terminate "$run_id" ${extra_args[@]+"${extra_args[@]}"}
+}
+
+toggle_schedule() {
+  local pod action="$1" name="$2" extra_args=()
+  pod=$(find_webserver_pod)
+  shift 2
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --location) extra_args+=(--location "$2"); shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  cat "$script_dir/_gql_helper.py" | run_py "$pod" - schedule "$action" "$name" ${extra_args[@]+"${extra_args[@]}"}
+}
+
+toggle_sensor() {
+  local pod action="$1" name="$2" extra_args=()
+  pod=$(find_webserver_pod)
+  shift 2
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --location) extra_args+=(--location "$2"); shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  cat "$script_dir/_gql_helper.py" | run_py "$pod" - sensor "$action" "$name" ${extra_args[@]+"${extra_args[@]}"}
+}
+
+# --- main ---
+
+if [[ $# -eq 0 ]]; then
+  usage
+fi
+
+case "$1" in
+  --check-setup) check_setup ;;
+  --locations) list_locations ;;
+  --runs) shift; list_runs "$@" ;;
+  --run-detail)
+    if [[ -z "${2:-}" ]]; then echo "Error: run ID required"; exit 1; fi
+    shift; run_detail "$@" ;;
+  --run-logs)
+    if [[ -z "${2:-}" ]]; then echo "Error: run ID required"; exit 1; fi
+    shift; run_logs "$@" ;;
+  --schedules) list_schedules ;;
+  --sensors) list_sensors ;;
+  --job-info)
+    if [[ -z "${2:-}" ]]; then echo "Error: job name required"; exit 1; fi
+    shift; job_info "$@" ;;
+  --launch)
+    if [[ -z "${2:-}" ]]; then echo "Error: job name required"; exit 1; fi
+    shift; launch_job "$@" ;;
+  --retry)
+    if [[ -z "${2:-}" ]]; then echo "Error: run ID required"; exit 1; fi
+    shift; retry_run "$@" ;;
+  --terminate)
+    if [[ -z "${2:-}" ]]; then echo "Error: run ID required"; exit 1; fi
+    shift; terminate_run "$@" ;;
+  --schedule-on)
+    if [[ -z "${2:-}" ]]; then echo "Error: schedule name required"; exit 1; fi
+    shift; toggle_schedule start "$@" ;;
+  --schedule-off)
+    if [[ -z "${2:-}" ]]; then echo "Error: schedule name required"; exit 1; fi
+    shift; toggle_schedule stop "$@" ;;
+  --sensor-on)
+    if [[ -z "${2:-}" ]]; then echo "Error: sensor name required"; exit 1; fi
+    shift; toggle_sensor start "$@" ;;
+  --sensor-off)
+    if [[ -z "${2:-}" ]]; then echo "Error: sensor name required"; exit 1; fi
+    shift; toggle_sensor stop "$@" ;;
+  -h|--help) usage ;;
+  *) echo "Unknown command: $1"; usage ;;
+esac
