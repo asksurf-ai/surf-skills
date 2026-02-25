@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+# surf-token — CLI for token data via Hermod API
+# Usage: surf-token <subcommand> --symbol SYM
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../../lib/config.sh"
+source "$SCRIPT_DIR/../../../lib/http.sh"
+
+API_PREFIX="/v1/token-data"
+
+usage() {
+  cat <<'EOF'
+{"usage": {
+  "command": "surf-token",
+  "subcommands": {
+    "holder":           {"args": "--symbol SYM", "description": "Get holder distribution (1 credit)"},
+    "transfer":         {"args": "--symbol SYM", "description": "Get transfer data (1 credit)"},
+    "exchange-flow":    {"args": "--symbol SYM", "description": "Get exchange inflow/outflow (1 credit)"},
+    "etf-flow":         {"args": "--symbol SYM", "description": "Get ETF flow data (1 credit)"},
+    "exchange-reserve": {"args": "--symbol SYM", "description": "Get exchange reserve levels (1 credit)"},
+    "moralis-holders":  {"args": "--token ADDR [--chain eth]", "description": "Moralis top holders by balance (2 credits)"},
+    "moralis-meta":     {"args": "--token ADDR [--chain eth]", "description": "Moralis token metadata (2 credits)"},
+    "moralis-transfers":{"args": "--token ADDR [--chain eth] [--limit 100]", "description": "Moralis token transfers (2 credits)"},
+    "cq-netflow":       {"args": "--asset btc [--window day] [--limit 30]", "description": "CryptoQuant exchange netflow (3 credits)"},
+    "cq-sopr":          {"args": "--asset btc [--window day]", "description": "CryptoQuant SOPR (3 credits)"},
+    "cq-nupl":          {"args": "--asset btc [--window day]", "description": "CryptoQuant NUPL (3 credits)"},
+    "sol-holders":      {"args": "--token MINT [--page 1]", "description": "Solscan token holders (4 credits)"},
+    "sol-transfers":    {"args": "--token MINT [--page 1]", "description": "Solscan token transfers (4 credits)"},
+    "sol-price":        {"args": "--token MINT", "description": "Solscan token price (4 credits)"},
+    "--check-setup":    {"args": "", "description": "Verify environment configuration"}
+  }
+}}
+EOF
+}
+
+build_query() {
+  local query=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --symbol)    query="${query:+$query&}symbol=$2"; shift 2 ;;
+      --exchange)  query="${query:+$query&}exchange=$2"; shift 2 ;;
+      --interval)  query="${query:+$query&}interval=$2"; shift 2 ;;
+      --limit)     query="${query:+$query&}limit=$2"; shift 2 ;;
+      *) echo "{\"error\": \"Unknown flag: $1\"}" >&2; return 1 ;;
+    esac
+  done
+  echo "$query"
+}
+
+# Main dispatch
+case "${1:---help}" in
+  --check-setup) surf_check_setup ;;
+  --help|-h) usage ;;
+
+  # Semantic endpoints
+  holder|transfer|exchange-flow|etf-flow|exchange-reserve)
+    subcmd="$1"; shift
+    query=$(build_query "$@")
+    surf_get "${API_PREFIX}/${subcmd}" "$query"
+    ;;
+
+  # Moralis proxy — ERC20 token data
+  moralis-holders)
+    shift; token=""; chain="eth"
+    while [[ $# -gt 0 ]]; do case "$1" in --token) token="$2"; shift 2 ;; --chain) chain="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1\"}" >&2; exit 1 ;; esac; done
+    [[ -z "$token" ]] && { echo '{"error": "--token is required (contract address)"}' >&2; exit 1; }
+    surf_proxy_get "moralis" "/api/v2.2/erc20/${token}/owners" "chain=${chain}&order=DESC&limit=100"
+    ;;
+  moralis-meta)
+    shift; token=""; chain="eth"
+    while [[ $# -gt 0 ]]; do case "$1" in --token) token="$2"; shift 2 ;; --chain) chain="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1\"}" >&2; exit 1 ;; esac; done
+    [[ -z "$token" ]] && { echo '{"error": "--token is required (contract address)"}' >&2; exit 1; }
+    surf_proxy_get "moralis" "/api/v2.2/erc20/metadata" "chain=${chain}&addresses[]=${token}"
+    ;;
+  moralis-transfers)
+    shift; token=""; chain="eth"; limit="100"
+    while [[ $# -gt 0 ]]; do case "$1" in --token) token="$2"; shift 2 ;; --chain) chain="$2"; shift 2 ;; --limit) limit="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1\"}" >&2; exit 1 ;; esac; done
+    [[ -z "$token" ]] && { echo '{"error": "--token is required (contract address)"}' >&2; exit 1; }
+    surf_proxy_get "moralis" "/api/v2.2/erc20/${token}/transfers" "chain=${chain}&limit=${limit}"
+    ;;
+
+  # CryptoQuant proxy — on-chain metrics
+  cq-netflow)
+    shift; asset="btc"; window="day"; limit="30"
+    while [[ $# -gt 0 ]]; do case "$1" in --asset) asset="$2"; shift 2 ;; --window) window="$2"; shift 2 ;; --limit) limit="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1\"}" >&2; exit 1 ;; esac; done
+    surf_proxy_get "cryptoquant" "/v1/${asset}/exchange-flows/netflow" "window=${window}&limit=${limit}"
+    ;;
+  cq-sopr)
+    shift; asset="btc"; window="day"
+    while [[ $# -gt 0 ]]; do case "$1" in --asset) asset="$2"; shift 2 ;; --window) window="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1\"}" >&2; exit 1 ;; esac; done
+    surf_proxy_get "cryptoquant" "/v1/${asset}/sopr" "window=${window}"
+    ;;
+  cq-nupl)
+    shift; asset="btc"; window="day"
+    while [[ $# -gt 0 ]]; do case "$1" in --asset) asset="$2"; shift 2 ;; --window) window="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1\"}" >&2; exit 1 ;; esac; done
+    surf_proxy_get "cryptoquant" "/v1/${asset}/nupl" "window=${window}"
+    ;;
+
+  # Solscan proxy — Solana token data
+  sol-holders)
+    shift; token=""; page="1"
+    while [[ $# -gt 0 ]]; do case "$1" in --token) token="$2"; shift 2 ;; --page) page="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1\"}" >&2; exit 1 ;; esac; done
+    [[ -z "$token" ]] && { echo '{"error": "--token is required (SPL mint address)"}' >&2; exit 1; }
+    surf_proxy_get "solscan" "/v2.0/token/holders" "token=${token}&page=${page}&page_size=100"
+    ;;
+  sol-transfers)
+    shift; token=""; page="1"
+    while [[ $# -gt 0 ]]; do case "$1" in --token) token="$2"; shift 2 ;; --page) page="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1\"}" >&2; exit 1 ;; esac; done
+    [[ -z "$token" ]] && { echo '{"error": "--token is required (SPL mint address)"}' >&2; exit 1; }
+    surf_proxy_get "solscan" "/v2.0/token/transfer" "token=${token}&page=${page}&page_size=100"
+    ;;
+  sol-price)
+    shift; token=""
+    while [[ $# -gt 0 ]]; do case "$1" in --token) token="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1\"}" >&2; exit 1 ;; esac; done
+    [[ -z "$token" ]] && { echo '{"error": "--token is required (SPL mint address)"}' >&2; exit 1; }
+    surf_proxy_get "solscan" "/v2.0/token/price" "token=${token}"
+    ;;
+
+  *) echo "{\"error\": \"Unknown command: $1. Use --help for usage.\"}" >&2; exit 1 ;;
+esac
