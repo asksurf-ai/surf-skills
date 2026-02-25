@@ -21,6 +21,8 @@ Use this skill when you need to:
 - Analyze volume, fees, revenue, TVL, and active users over time
 - Compare protocol metrics across projects
 - Search for a project by name to find its project-id
+- Discover available Token Terminal projects and metrics
+- Get project detail with available metric list
 
 ## CLI Usage
 
@@ -69,12 +71,24 @@ surf-project-data/scripts/surf-project tt-metrics --project-id aave --metrics re
 
 # Get metric rankings across projects (Token Terminal proxy, 2 credits)
 surf-project-data/scripts/surf-project tt-ranking --metric tvl --project-ids aave,uniswap,lido
+
+# List all Token Terminal projects — 1369 total, use --limit (2 credits, proxy)
+surf-project-data/scripts/surf-project tt-projects --limit 20
+
+# Get project detail with available metrics (2 credits, proxy)
+surf-project-data/scripts/surf-project tt-project --project-id aave
+
+# List all 194 available Token Terminal metrics (2 credits, proxy)
+surf-project-data/scripts/surf-project tt-metrics-list
 ```
 
 ## Important Notes
 
 - **Two parameter styles**: Muninn endpoints use `--query` (project name). Token Terminal endpoints use `--project-id` (slug).
 - **Use `search` to find project-id** when you don't know the exact slug for Token Terminal endpoints.
+- **Use `tt-projects` to discover project-ids** — lists all 1369 Token Terminal projects with their slugs.
+- **Use `tt-metrics-list` to discover metrics** — lists all 194 available metric IDs (tvl, fees, revenue, etc.).
+- **Use `tt-project` to check a project's available metrics** before querying `tt-metrics`.
 - **tt-metrics** supports multiple metrics in one call: `--metrics revenue,tvl,fees`
 
 ## Cost

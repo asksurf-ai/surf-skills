@@ -53,6 +53,15 @@ surf-wallet-data/scripts/surf-wallet etherscan-txs --address 0xd8dA6BF26964aF9D7
 
 # Etherscan gas prices (proxy, 4 credits)
 surf-wallet-data/scripts/surf-wallet etherscan-gas
+
+# Etherscan contract ABI (proxy, 4 credits)
+surf-wallet-data/scripts/surf-wallet etherscan-abi --address 0xdac17f958d2ee523a2206206994597c13d831ec7
+
+# Etherscan contract source code (proxy, 4 credits)
+surf-wallet-data/scripts/surf-wallet etherscan-sourcecode --address 0xdac17f958d2ee523a2206206994597c13d831ec7
+
+# Etherscan contract creation info (proxy, 4 credits)
+surf-wallet-data/scripts/surf-wallet etherscan-contract-creation --address 0xdac17f958d2ee523a2206206994597c13d831ec7
 ```
 
 ## Important Notes
@@ -61,6 +70,7 @@ surf-wallet-data/scripts/surf-wallet etherscan-gas
 - **Use semantic endpoints first** — they're cheaper and often sufficient.
 - **Etherscan chainid**: Default is `1` (Ethereum mainnet). Other chains: `56` (BSC), `137` (Polygon), `42161` (Arbitrum).
 - **debank-history** supports `--chain` filter and `--limit` to control result count.
+- **etherscan-abi** returns the ABI JSON as a string in the `result` field — useful for contract interaction.
 
 ## Cost
 

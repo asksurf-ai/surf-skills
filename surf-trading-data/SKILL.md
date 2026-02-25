@@ -67,6 +67,21 @@ surf-trading-data/scripts/surf-trading cg-search --query solana
 
 # Full coin detail: ATH, supply, market cap (CoinGecko proxy, 2 credits)
 surf-trading-data/scripts/surf-trading cg-coin --id bitcoin
+
+# Derivatives tickers: funding rate, OI, volume by exchange (CoinGecko proxy, 2 credits)
+surf-trading-data/scripts/surf-trading cg-derivatives --limit 20
+
+# Derivatives exchanges ranking (CoinGecko proxy, 2 credits)
+surf-trading-data/scripts/surf-trading cg-deriv-exchanges --limit 10
+
+# Public companies holding BTC/ETH (CoinGecko proxy, 2 credits)
+surf-trading-data/scripts/surf-trading cg-companies --coin bitcoin
+
+# Market categories with market cap (CoinGecko proxy, 2 credits)
+surf-trading-data/scripts/surf-trading cg-categories --limit 10
+
+# AHR999 index — BTC valuation indicator (CoinGlass proxy, 3 credits)
+surf-trading-data/scripts/surf-trading cg-ahr999
 ```
 
 ## Important Notes
@@ -75,11 +90,13 @@ surf-trading-data/scripts/surf-trading cg-coin --id bitcoin
 - **Use `cg-markets` for funding rate analysis** — returns price, funding rate, OI ratio in one call
 - **Use `cg-search` to find CoinGecko ID** — `price` command needs CoinGecko ID (e.g. `bitcoin`), not ticker (e.g. `BTC`)
 - **ETF types**: `us-btc-spot`, `us-eth-spot`
+- **`cg-companies` coins**: only `bitcoin` and `ethereum` are supported
+- **`cg-derivatives`** returns ~20K tickers — always use `--limit`
 
 ## Cost
 
 - Semantic endpoints (price, future, indicator, etc.): 1 credit
-- CoinGlass proxy (cg-markets): 3 credits
+- CoinGlass proxy (cg-markets, cg-ahr999): 3 credits
 - CoinGecko proxy (cg-*): 2 credits
 
 ## Endpoints Reference

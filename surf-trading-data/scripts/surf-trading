@@ -33,6 +33,11 @@ usage() {
     "cg-movers":        {"args": "", "description": "CoinGecko top gainers and losers 24h (2 credits, proxy)"},
     "cg-search":        {"args": "--query NAME", "description": "CoinGecko search coins by name — find coin ID for price lookups (2 credits, proxy)"},
     "cg-coin":          {"args": "--id bitcoin", "description": "CoinGecko full coin detail: ATH, supply, market cap (2 credits, proxy)"},
+    "cg-derivatives":   {"args": "[--limit 20]", "description": "CoinGecko derivatives tickers: funding rate, OI, volume by exchange (2 credits, proxy)"},
+    "cg-deriv-exchanges":{"args": "[--limit 10]", "description": "CoinGecko derivatives exchanges ranking (2 credits, proxy)"},
+    "cg-companies":     {"args": "--coin bitcoin", "description": "CoinGecko public companies holding BTC/ETH (2 credits, proxy). Coins: bitcoin, ethereum"},
+    "cg-categories":    {"args": "[--limit 10]", "description": "CoinGecko market categories with market cap and 24h change (2 credits, proxy)"},
+    "cg-ahr999":        {"args": "", "description": "CoinGlass AHR999 index — BTC valuation indicator (3 credits, proxy)"},
     "--check-setup":    {"args": "", "description": "Verify environment configuration"}
   }
 }}
@@ -160,6 +165,42 @@ json.dump(d,sys.stdout)
     [[ -z "$id" ]] && { echo '{"error": "--id is required (e.g. bitcoin, ethereum). Use cg-search to find ID."}' >&2; exit 1; }
     surf_proxy_get "coingecko" "/api/v3/coins/${id}" "localization=false&tickers=false&market_data=true&community_data=false&developer_data=false"
     ;;
+  cg-derivatives)
+    shift; limit="20"
+    while [[ $# -gt 0 ]]; do case "$1" in --limit) limit="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1. Valid: --limit\"}" >&2; exit 1 ;; esac; done
+    surf_proxy_get "coingecko" "/api/v3/derivatives" "" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+limit=int(sys.argv[1])
+d=d[:limit]
+json.dump(d,sys.stdout)
+" "$limit"
+    ;;
+  cg-deriv-exchanges)
+    shift; limit="10"
+    while [[ $# -gt 0 ]]; do case "$1" in --limit) limit="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1. Valid: --limit\"}" >&2; exit 1 ;; esac; done
+    surf_proxy_get "coingecko" "/api/v3/derivatives/exchanges" "per_page=${limit}"
+    ;;
+  cg-companies)
+    shift; coin=""
+    while [[ $# -gt 0 ]]; do case "$1" in --coin) coin="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1. Valid: --coin\"}" >&2; exit 1 ;; esac; done
+    [[ -z "$coin" ]] && { echo '{"error": "--coin is required. Valid: bitcoin, ethereum"}' >&2; exit 1; }
+    surf_proxy_get "coingecko" "/api/v3/companies/public_treasury/${coin}"
+    ;;
+  cg-categories)
+    shift; limit="10"
+    while [[ $# -gt 0 ]]; do case "$1" in --limit) limit="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1. Valid: --limit\"}" >&2; exit 1 ;; esac; done
+    surf_proxy_get "coingecko" "/api/v3/coins/categories" "" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+limit=int(sys.argv[1])
+d=d[:limit]
+json.dump(d,sys.stdout)
+" "$limit"
+    ;;
 
-  *) echo "{\"error\": \"Unknown command: $1. Available: price, future, cg-markets, option, liquidation, indicator, market-indicator, etf, volume, cg-ohlc, cg-trending, cg-global, cg-market-cap, cg-movers, cg-search, cg-coin\"}" >&2; exit 1 ;;
+  # CoinGlass proxy: AHR999 index
+  cg-ahr999) shift; surf_proxy_get "coinglass" "/api/index/ahr999" ;;
+
+  *) echo "{\"error\": \"Unknown command: $1. Available: price, future, cg-markets, option, liquidation, indicator, market-indicator, etf, volume, cg-ohlc, cg-trending, cg-global, cg-market-cap, cg-movers, cg-search, cg-coin, cg-derivatives, cg-deriv-exchanges, cg-companies, cg-categories, cg-ahr999\"}" >&2; exit 1 ;;
 esac

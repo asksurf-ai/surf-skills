@@ -16,7 +16,7 @@ source "$SCRIPT_DIR/../../lib/http.sh"
 
 API_PREFIX="/v1/project"
 
-ALL_COMMANDS="overview, token-info, funding, team, contract-address, social, volume, fee, revenue, tvl, users, search, tt-metrics, tt-ranking"
+ALL_COMMANDS="overview, token-info, funding, team, contract-address, social, volume, fee, revenue, tvl, users, search, tt-metrics, tt-ranking, tt-projects, tt-project, tt-metrics-list"
 
 usage() {
   cat <<'EOF'
@@ -37,6 +37,9 @@ usage() {
     "search":           {"args": "--query NAME [--limit 5]", "description": "Muninn project search (1 credit, proxy)"},
     "tt-metrics":       {"args": "--project-id aave --metrics revenue,tvl [--start DATE] [--end DATE]", "description": "Token Terminal metrics (2 credits, proxy)"},
     "tt-ranking":       {"args": "--metric tvl [--project-ids aave,uniswap]", "description": "Token Terminal ranking (2 credits, proxy)"},
+    "tt-projects":      {"args": "[--limit 20]", "description": "Token Terminal list all projects (2 credits, proxy). 1369 total."},
+    "tt-project":       {"args": "--project-id aave", "description": "Token Terminal project detail + available metrics (2 credits, proxy)"},
+    "tt-metrics-list":  {"args": "", "description": "Token Terminal list all 194 available metrics (2 credits, proxy)"},
     "--check-setup":    {"args": "", "description": "Verify environment configuration"}
   }
 }}
@@ -110,6 +113,30 @@ case "${1:---help}" in
     [[ -z "$metric" ]] && { echo '{"error": "--metric is required (e.g. tvl, revenue, fees)"}' >&2; exit 1; }
     q=""; [[ -n "$pids" ]] && q="project_ids=${pids}"
     surf_proxy_get "tt" "/v2/metrics/${metric}" "$q"
+    ;;
+
+  # Token Terminal proxy — project discovery
+  tt-projects)
+    shift; limit="20"
+    while [[ $# -gt 0 ]]; do case "$1" in --limit) limit="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1. Valid: --limit\"}" >&2; exit 1 ;; esac; done
+    surf_proxy_get "tt" "/v2/projects" "" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+limit=int(sys.argv[1])
+if isinstance(d.get('data'),list):
+    d['data']=[p for p in d['data'] if not p.get('is_archived')][:limit]
+json.dump(d,sys.stdout)
+" "$limit"
+    ;;
+  tt-project)
+    shift; pid=""
+    while [[ $# -gt 0 ]]; do case "$1" in --project-id) pid="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1. Valid: --project-id\"}" >&2; exit 1 ;; esac; done
+    [[ -z "$pid" ]] && { echo '{"error": "--project-id is required (e.g. aave, ethereum, uniswap)"}' >&2; exit 1; }
+    surf_proxy_get "tt" "/v2/projects/${pid}"
+    ;;
+  tt-metrics-list)
+    shift
+    surf_proxy_get "tt" "/v2/metrics"
     ;;
 
   *) echo "{\"error\": \"Unknown command: $1. Available: ${ALL_COMMANDS}\"}" >&2; exit 1 ;;
