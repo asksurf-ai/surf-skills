@@ -55,6 +55,7 @@ import json, sys
 data = {
     'hermod_url': sys.argv[1],
     'hermod_token': sys.argv[2],
+    'access_token': sys.argv[2],
 }
 if sys.argv[3]:
     data['refresh_token'] = sys.argv[3]

@@ -18,13 +18,14 @@ usage() {
   "command": "surf-trading",
   "subcommands": {
     "price":            {"args": "--ids bitcoin,ethereum [--vs usd] [--include-24hr-change]", "description": "CoinGecko price (1 credit)"},
-    "future":           {"args": "--symbol BTC", "description": "CoinGlass futures OI (1 credit)"},
-    "option":           {"args": "--symbol BTC", "description": "CoinGlass options (1 credit)"},
-    "liquidation":      {"args": "--symbol BTC", "description": "CoinGlass liquidations (1 credit)"},
+    "future":           {"args": "--symbol BTC [--limit 5]", "description": "CoinGlass futures OI (1 credit). WARNING: returns large JSON, use --limit"},
+    "cg-markets":       {"args": "[--symbol BTC] [--limit 10]", "description": "CoinGlass all-in-one: price, funding rate, OI, OI/MCap ratio (3 credits, proxy)"},
+    "option":           {"args": "--symbol BTC [--limit 5]", "description": "CoinGlass options (1 credit)"},
+    "liquidation":      {"args": "--symbol BTC [--limit 5]", "description": "CoinGlass liquidations (1 credit)"},
     "indicator":        {"args": "--name rsi --symbol BTC/USDT [--interval 1d] [--exchange binance]", "description": "TAAPI indicator (1 credit)"},
     "market-indicator": {"args": "--asset btc --metric market-indicator/sopr [--window day] [--limit 2]", "description": "CryptoQuant metric (1 credit)"},
-    "etf":              {"args": "--type us-btc-spot", "description": "SoSoValue ETF (1 credit)"},
-    "volume":           {"args": "--symbol BTC", "description": "CoinGlass volume (1 credit)"},
+    "etf":              {"args": "--type us-btc-spot", "description": "SoSoValue ETF (1 credit). Types: us-btc-spot, us-eth-spot"},
+    "volume":           {"args": "--symbol BTC [--limit 5]", "description": "CoinGlass volume (1 credit)"},
     "cg-ohlc":          {"args": "--id bitcoin [--days 30]", "description": "CoinGecko OHLCV candles (2 credits)"},
     "cg-trending":      {"args": "", "description": "CoinGecko trending (2 credits)"},
     "cg-global":        {"args": "", "description": "CoinGecko global market (2 credits)"},
@@ -62,11 +63,68 @@ case "${1:---help}" in
   --check-setup) surf_check_setup ;;
   --help|-h) usage ;;
 
-  # Semantic endpoints
-  price|future|option|liquidation|indicator|market-indicator|etf|volume)
+  # Semantic endpoints (with optional --limit for large responses)
+  future|option|liquidation|volume)
+    subcmd="$1"; shift
+    _limit=""
+    _args=()
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --limit) _limit="$2"; shift 2 ;;
+        *) _args+=("$1"); shift ;;
+      esac
+    done
+    query=$(build_query "${_args[@]+"${_args[@]}"}")
+    if [[ -n "$_limit" ]]; then
+      surf_get "${API_PREFIX}/${subcmd}" "$query" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+limit=int(sys.argv[1])
+if isinstance(d,dict):
+    for k,v in d.items():
+        if isinstance(v,list) and len(v)>limit:
+            d[k]=v[:limit]
+        elif isinstance(v,dict):
+            for k2,v2 in v.items():
+                if isinstance(v2,list) and len(v2)>limit:
+                    v[k2]=v2[:limit]
+json.dump(d,sys.stdout)
+" "$_limit"
+    else
+      surf_get "${API_PREFIX}/${subcmd}" "$query"
+    fi
+    ;;
+  price|indicator|market-indicator|etf)
     subcmd="$1"; shift
     query=$(build_query "$@")
     surf_get "${API_PREFIX}/${subcmd}" "$query"
+    ;;
+
+  # CoinGlass proxy: coins-markets (funding rate + OI + price in one call)
+  cg-markets)
+    shift; symbol=""; limit="10"
+    while [[ $# -gt 0 ]]; do
+      case "$1" in --symbol) symbol="$2"; shift 2 ;; --limit) limit="$2"; shift 2 ;; *) echo "{\"error\": \"Unknown flag: $1. Valid: --symbol, --limit\"}" >&2; exit 1 ;; esac
+    done
+    q=""
+    [[ -n "$symbol" ]] && q="symbol=${symbol}"
+    surf_proxy_get "coinglass" "/api/futures/coins-markets" "$q" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+limit=int(sys.argv[1])
+if d.get('code')=='0' and isinstance(d.get('data'),list):
+    d['data']=d['data'][:limit]
+    # Extract key fields for readability
+    d['summary']=[{
+        'symbol':i.get('symbol'),
+        'price':i.get('current_price'),
+        'funding_rate_oi_avg':i.get('avg_funding_rate_by_oi'),
+        'funding_rate_vol_avg':i.get('avg_funding_rate_by_vol'),
+        'oi_mcap_ratio':i.get('open_interest_market_cap_ratio'),
+        'market_cap_usd':i.get('market_cap_usd'),
+    } for i in d['data']]
+json.dump(d,sys.stdout)
+" "$limit"
     ;;
 
   # CoinGecko proxy
@@ -81,5 +139,5 @@ case "${1:---help}" in
   cg-trending) shift; surf_proxy_get "coingecko" "/api/v3/search/trending" ;;
   cg-global)   shift; surf_proxy_get "coingecko" "/api/v3/global" ;;
 
-  *) echo "{\"error\": \"Unknown command: $1. Use --help for usage.\"}" >&2; exit 1 ;;
+  *) echo "{\"error\": \"Unknown command: $1. Available: price, future, cg-markets, option, liquidation, indicator, market-indicator, etf, volume, cg-ohlc, cg-trending, cg-global\"}" >&2; exit 1 ;;
 esac

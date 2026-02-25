@@ -62,7 +62,7 @@ print(d.get('exp', 0))
           # Update session file
           python3 -c "
 import json, sys
-data = {'hermod_url': sys.argv[1], 'hermod_token': sys.argv[2], 'refresh_token': sys.argv[3]}
+data = {'hermod_url': sys.argv[1], 'hermod_token': sys.argv[2], 'access_token': sys.argv[2], 'refresh_token': sys.argv[3]}
 with open(sys.argv[4], 'w') as f:
     json.dump(data, f, indent=2)
 " "$HERMOD_URL" "$_surf_new_token" "$_surf_new_refresh" "$SURF_SESSION_FILE" 2>/dev/null
