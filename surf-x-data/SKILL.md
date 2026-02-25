@@ -22,14 +22,14 @@ Use this skill when you need to:
 # Check setup
 surf-x-data/scripts/surf-x --check-setup
 
-# Search tweets
-surf-x-data/scripts/surf-x search --query "bitcoin ETF"
+# Search tweets (use --limit to control result count)
+surf-x-data/scripts/surf-x search --query "bitcoin ETF" --limit 10
 
 # Get user profile
 surf-x-data/scripts/surf-x user --handle vitalikbuterin
 
-# Get user tweets
-surf-x-data/scripts/surf-x tweets --handle vitalikbuterin
+# Get user tweets (use --limit to control result count)
+surf-x-data/scripts/surf-x tweets --handle vitalikbuterin --limit 10
 
 # Get specific tweets by IDs
 surf-x-data/scripts/surf-x get-tweets --ids '["1234567890", "0987654321"]'

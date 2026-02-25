@@ -17,9 +17,9 @@ usage() {
 {"usage": {
   "command": "surf-x",
   "subcommands": {
-    "search":        {"args": "--query QUERY", "description": "Search tweets (3 credits)"},
+    "search":        {"args": "--query QUERY [--limit 20]", "description": "Search tweets (3 credits)"},
     "user":          {"args": "--handle HANDLE", "description": "Get user profile (2 credits)"},
-    "tweets":        {"args": "--handle HANDLE", "description": "Get user tweets (3 credits)"},
+    "tweets":        {"args": "--handle HANDLE [--limit 20]", "description": "Get user tweets (3 credits)"},
     "get-tweets":    {"args": "--ids JSON_ARRAY", "description": "Get tweets by IDs (2 credits)"},
     "--check-setup": {"args": "", "description": "Verify environment configuration"}
   }
@@ -34,10 +34,12 @@ case "${1:---help}" in
   search)
     shift
     local_query=""
+    local_limit=""
     while [[ $# -gt 0 ]]; do
       case "$1" in
         --query) local_query="$2"; shift 2 ;;
-        *) echo "{\"error\": \"Unknown flag: $1\"}" >&2; exit 1 ;;
+        --limit) local_limit="$2"; shift 2 ;;
+        *) echo "{\"error\": \"Unknown flag: $1. Valid: --query, --limit\"}" >&2; exit 1 ;;
       esac
     done
     if [[ -z "$local_query" ]]; then
@@ -45,7 +47,20 @@ case "${1:---help}" in
     fi
     # JSON-encode the query string safely
     local_json_query=$(python3 -c "import json,sys; print(json.dumps(sys.argv[1]))" "$local_query")
-    surf_post "${API_PREFIX}/search" "{\"query\": $local_json_query}"
+    local_body="{\"query\": $local_json_query}"
+    # Truncate results client-side if --limit specified
+    if [[ -n "$local_limit" ]]; then
+      surf_post "${API_PREFIX}/search" "$local_body" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+limit=int(sys.argv[1])
+if 'data' in d and 'tweets' in d['data']:
+    d['data']['tweets']=d['data']['tweets'][:limit]
+json.dump(d,sys.stdout)
+" "$local_limit"
+    else
+      surf_post "${API_PREFIX}/search" "$local_body"
+    fi
     ;;
   user)
     shift
@@ -53,7 +68,7 @@ case "${1:---help}" in
     while [[ $# -gt 0 ]]; do
       case "$1" in
         --handle) local_handle="$2"; shift 2 ;;
-        *) echo "{\"error\": \"Unknown flag: $1\"}" >&2; exit 1 ;;
+        *) echo "{\"error\": \"Unknown flag: $1. Valid: --handle\"}" >&2; exit 1 ;;
       esac
     done
     if [[ -z "$local_handle" ]]; then
@@ -64,16 +79,29 @@ case "${1:---help}" in
   tweets)
     shift
     local_handle=""
+    local_limit=""
     while [[ $# -gt 0 ]]; do
       case "$1" in
         --handle) local_handle="$2"; shift 2 ;;
-        *) echo "{\"error\": \"Unknown flag: $1\"}" >&2; exit 1 ;;
+        --limit) local_limit="$2"; shift 2 ;;
+        *) echo "{\"error\": \"Unknown flag: $1. Valid: --handle, --limit\"}" >&2; exit 1 ;;
       esac
     done
     if [[ -z "$local_handle" ]]; then
       echo '{"error": "--handle is required"}' >&2; exit 1
     fi
-    surf_get "${API_PREFIX}/user/${local_handle}/tweets"
+    if [[ -n "$local_limit" ]]; then
+      surf_get "${API_PREFIX}/user/${local_handle}/tweets" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+limit=int(sys.argv[1])
+if 'data' in d and 'tweets' in d['data']:
+    d['data']['tweets']=d['data']['tweets'][:limit]
+json.dump(d,sys.stdout)
+" "$local_limit"
+    else
+      surf_get "${API_PREFIX}/user/${local_handle}/tweets"
+    fi
     ;;
   get-tweets)
     shift
@@ -89,5 +117,5 @@ case "${1:---help}" in
     fi
     surf_post "${API_PREFIX}/tweets" "{\"tweet_ids\": $local_ids}"
     ;;
-  *) echo "{\"error\": \"Unknown command: $1. Use --help for usage.\"}" >&2; exit 1 ;;
+  *) echo "{\"error\": \"Unknown command: $1. Available: search, user, tweets, get-tweets\"}" >&2; exit 1 ;;
 esac

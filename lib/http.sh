@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
 # http.sh — HTTP utilities for surf-core CLI tools
 # Provides curl wrappers with unified headers, error handling, and JSON output.
+# Safe to source standalone — auto-loads config.sh if HERMOD_URL is not set.
 
 set -euo pipefail
+
+# Auto-load config.sh if not already sourced (enables standalone `source http.sh`)
+if [[ -z "${HERMOD_URL:-}" ]]; then
+  _HTTP_SH_DIR="$(cd "$(dirname "$(python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")" && pwd)"
+  if [[ -f "$_HTTP_SH_DIR/config.sh" ]]; then
+    source "$_HTTP_SH_DIR/config.sh"
+  fi
+  unset _HTTP_SH_DIR
+fi
 
 # GET request to Hermod API
 # Usage: surf_get "/v1/trading-data/price" "symbol=BTC&interval=1d"
