@@ -34,17 +34,17 @@ Real-time crypto market data: spot prices, 14 technical indicators, futures/opti
 Get a quick snapshot of prices and market sentiment.
 ```bash
 # Get BTC and ETH prices
-runtimes/cli/market/scripts/surf-market price --ids bitcoin,ethereum,solana --vs-currencies usd
+surf-market price --ids bitcoin,ethereum,solana --vs-currencies usd
 
 # Check Fear & Greed Index
-runtimes/cli/market/scripts/surf-market top --metric fear_greed
+surf-market top --metric fear_greed
 
 # See top gainers and losers
-runtimes/cli/market/scripts/surf-market top --metric top_gainers
-runtimes/cli/market/scripts/surf-market top --metric top_losers
+surf-market top --metric top_gainers
+surf-market top --metric top_losers
 
 # Market overview (market cap, volume, BTC dominance)
-runtimes/cli/market/scripts/surf-market top --metric market_overview
+surf-market top --metric market_overview
 ```
 **What to look for:** Fear & Greed below 25 = Extreme Fear (potential buying opportunity). Above 75 = Extreme Greed (potential top). Compare 24h price changes across assets to gauge rotation.
 
@@ -52,22 +52,22 @@ runtimes/cli/market/scripts/surf-market top --metric market_overview
 Evaluate entry/exit signals using technical indicators.
 ```bash
 # RSI — overbought (>70) or oversold (<30)
-runtimes/cli/market/scripts/surf-market indicator --name rsi --symbol BTC/USDT
+surf-market indicator --name rsi --symbol BTC/USDT
 
 # MACD — trend direction and momentum
-runtimes/cli/market/scripts/surf-market indicator --name macd --symbol BTC/USDT
+surf-market indicator --name macd --symbol BTC/USDT
 
 # Bollinger Bands — volatility and mean reversion
-runtimes/cli/market/scripts/surf-market indicator --name bbands --symbol ETH/USDT
+surf-market indicator --name bbands --symbol ETH/USDT
 
 # EMA — trend following (use with different intervals)
-runtimes/cli/market/scripts/surf-market indicator --name ema --symbol SOL/USDT --interval 4h
+surf-market indicator --name ema --symbol SOL/USDT --interval 4h
 
 # Supertrend — trend direction with stop levels
-runtimes/cli/market/scripts/surf-market indicator --name supertrend --symbol BTC/USDT --interval 1d
+surf-market indicator --name supertrend --symbol BTC/USDT --interval 1d
 
 # Ichimoku Cloud — comprehensive trend analysis
-runtimes/cli/market/scripts/surf-market indicator --name ichimoku --symbol BTC/USDT --interval 1d
+surf-market indicator --name ichimoku --symbol BTC/USDT --interval 1d
 ```
 **Available indicators:** rsi, macd, ema, sma, bbands, stoch, adx, atr, cci, obv, vwap, dmi, ichimoku, supertrend
 
@@ -77,25 +77,25 @@ runtimes/cli/market/scripts/surf-market indicator --name ichimoku --symbol BTC/U
 Assess leverage, positioning, and liquidation risk.
 ```bash
 # Futures overview — OI, funding, long/short ratios
-runtimes/cli/market/scripts/surf-market futures --symbol BTC
+surf-market futures --symbol BTC
 
 # Liquidation data — who's getting rekt
-runtimes/cli/market/scripts/surf-market liquidation --symbol BTC
+surf-market liquidation --symbol BTC
 
 # Options open interest by exchange
-runtimes/cli/market/scripts/surf-market options --symbol BTC
+surf-market options --symbol BTC
 
 # Funding rates across all assets
-runtimes/cli/market/scripts/surf-market top --metric funding_rate
+surf-market top --metric funding_rate
 
 # Open interest rankings
-runtimes/cli/market/scripts/surf-market top --metric open_interest
+surf-market top --metric open_interest
 
 # Long/short ratio rankings
-runtimes/cli/market/scripts/surf-market top --metric long_short_ratio
+surf-market top --metric long_short_ratio
 
 # Liquidation rankings
-runtimes/cli/market/scripts/surf-market top --metric liquidations
+surf-market top --metric liquidations
 ```
 **What to look for:** Extreme funding rates (>0.05% = overleveraged longs, <-0.02% = overleveraged shorts). Long/short ratio far from 1.0 signals crowded positioning. Large 24h liquidations indicate forced selling/buying.
 
@@ -103,10 +103,10 @@ runtimes/cli/market/scripts/surf-market top --metric liquidations
 Monitor institutional money flows through spot Bitcoin and Ethereum ETFs.
 ```bash
 # BTC spot ETF flows and holdings
-runtimes/cli/market/scripts/surf-market etf --type us-btc-spot
+surf-market etf --type us-btc-spot
 
 # ETH spot ETF flows and holdings
-runtimes/cli/market/scripts/surf-market etf --type us-eth-spot
+surf-market etf --type us-eth-spot
 ```
 **Available types:** us-btc-spot, us-eth-spot
 
@@ -116,22 +116,22 @@ runtimes/cli/market/scripts/surf-market etf --type us-eth-spot
 Use on-chain metrics to assess market cycle positioning.
 ```bash
 # NUPL (Net Unrealized Profit/Loss) — market cycle phase
-runtimes/cli/market/scripts/surf-market market-indicator --asset btc --metric nupl --window day --limit 30
+surf-market market-indicator --asset btc --metric nupl --window day --limit 30
 
 # SOPR (Spent Output Profit Ratio) — profit-taking behavior
-runtimes/cli/market/scripts/surf-market market-indicator --asset btc --metric sopr --window day --limit 30
+surf-market market-indicator --asset btc --metric sopr --window day --limit 30
 
 # MVRV — market value vs realized value
-runtimes/cli/market/scripts/surf-market market-indicator --asset btc --metric mvrv --window day --limit 30
+surf-market market-indicator --asset btc --metric mvrv --window day --limit 30
 
 # Exchange inflows — selling pressure
-runtimes/cli/market/scripts/surf-market market-indicator --asset btc --metric exchange-flows/inflow --window day --limit 20
+surf-market market-indicator --asset btc --metric exchange-flows/inflow --window day --limit 20
 
 # Exchange outflows — accumulation
-runtimes/cli/market/scripts/surf-market market-indicator --asset btc --metric exchange-flows/outflow --window day --limit 20
+surf-market market-indicator --asset btc --metric exchange-flows/outflow --window day --limit 20
 
 # Exchange net flows — net buy/sell pressure
-runtimes/cli/market/scripts/surf-market market-indicator --asset btc --metric exchange-flows/netflow --window day --limit 20
+surf-market market-indicator --asset btc --metric exchange-flows/netflow --window day --limit 20
 ```
 **Available metrics:** nupl, sopr, mvrv, puell-multiple, nvm, nvt, nvt-golden-cross, rhodl-ratio, exchange-flows/inflow, exchange-flows/outflow, exchange-flows/netflow
 
@@ -141,16 +141,16 @@ runtimes/cli/market/scripts/surf-market market-indicator --asset btc --metric ex
 Discover what's gaining attention and smart money interest.
 ```bash
 # General trending coins
-runtimes/cli/market/scripts/surf-market trending --type general --limit 10
+surf-market trending --type general --limit 10
 
 # Trending on DEXes (early signals)
-runtimes/cli/market/scripts/surf-market trending --type dex --limit 10
+surf-market trending --type dex --limit 10
 
 # Mindshare trending (social attention)
-runtimes/cli/market/scripts/surf-market trending --type mindshare --limit 10
+surf-market trending --type mindshare --limit 10
 
 # Smart money following
-runtimes/cli/market/scripts/surf-market trending --type smart_following --limit 10
+surf-market trending --type smart_following --limit 10
 ```
 **Available types:** general, dex, mindshare, smart_following
 
@@ -160,13 +160,13 @@ runtimes/cli/market/scripts/surf-market trending --type smart_following --limit 
 Get historical price data for charting or analysis.
 ```bash
 # BTC 30-day price history
-runtimes/cli/market/scripts/surf-market price-metrics --id bitcoin --days 30 --vs-currency usd
+surf-market price-metrics --id bitcoin --days 30 --vs-currency usd
 
 # ETH 7-day price history
-runtimes/cli/market/scripts/surf-market price-metrics --id ethereum --days 7 --vs-currency usd
+surf-market price-metrics --id ethereum --days 7 --vs-currency usd
 
 # Search for an asset by name to get its ID
-runtimes/cli/market/scripts/surf-market search --query solana
+surf-market search --query solana
 ```
 **What to look for:** Use price-metrics data to calculate support/resistance levels, identify trends, or compare asset performance over matching time periods.
 
@@ -174,13 +174,13 @@ runtimes/cli/market/scripts/surf-market search --query solana
 Track Token Generation Events (TGEs) for new investment opportunities.
 ```bash
 # Upcoming TGEs
-runtimes/cli/market/scripts/surf-market tge --status upcoming
+surf-market tge --status upcoming
 
 # Pre-TGE projects (already announced)
-runtimes/cli/market/scripts/surf-market tge --status pre
+surf-market tge --status pre
 
 # Post-TGE projects (recently launched)
-runtimes/cli/market/scripts/surf-market tge --status post
+surf-market tge --status post
 ```
 **Available statuses:** upcoming, pre, post
 
@@ -190,25 +190,25 @@ runtimes/cli/market/scripts/surf-market tge --status post
 Combine market data with news and web research for comprehensive analysis.
 ```bash
 # 1. Price + sentiment snapshot
-runtimes/cli/market/scripts/surf-market price --ids bitcoin,ethereum,solana --vs-currencies usd
-runtimes/cli/market/scripts/surf-market top --metric fear_greed
+surf-market price --ids bitcoin,ethereum,solana --vs-currencies usd
+surf-market top --metric fear_greed
 
 # 2. Technical picture
-runtimes/cli/market/scripts/surf-market indicator --name rsi --symbol BTC/USDT
-runtimes/cli/market/scripts/surf-market indicator --name macd --symbol BTC/USDT
+surf-market indicator --name rsi --symbol BTC/USDT
+surf-market indicator --name macd --symbol BTC/USDT
 
 # 3. Derivatives positioning
-runtimes/cli/market/scripts/surf-market futures --symbol BTC
-runtimes/cli/market/scripts/surf-market liquidation --symbol BTC
+surf-market futures --symbol BTC
+surf-market liquidation --symbol BTC
 
 # 4. Institutional flows
-runtimes/cli/market/scripts/surf-market etf --type us-btc-spot
+surf-market etf --type us-btc-spot
 
 # 5. On-chain health
-runtimes/cli/market/scripts/surf-market market-indicator --asset btc --metric nupl --window day --limit 7
+surf-market market-indicator --asset btc --metric nupl --window day --limit 7
 
 # 6. News context (use surf-news)
-runtimes/cli/news/scripts/surf-news search --query "bitcoin market" --limit 5
+surf-news search --query "bitcoin market" --limit 5
 ```
 
 ## Tips

@@ -19,17 +19,17 @@ Fetch and query Hermod's OpenAPI specs locally. Use this to understand API endpo
 
 ```bash
 # 1. Sync specs (run once, or after Hermod updates)
-runtimes/cli/hermod-api/scripts/surf-api sync
+surf-api sync
 
 # 2. Browse endpoints by category
-runtimes/cli/hermod-api/scripts/surf-api endpoints trading
-runtimes/cli/hermod-api/scripts/surf-api endpoints proxy
+surf-api endpoints trading
+surf-api endpoints proxy
 
 # 3. Show full endpoint details + curl example
-runtimes/cli/hermod-api/scripts/surf-api show /trading-data/price
+surf-api show /trading-data/price
 
 # 4. Search by keyword
-runtimes/cli/hermod-api/scripts/surf-api search holders
+surf-api search holders
 ```
 
 ## Commands

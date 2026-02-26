@@ -669,7 +669,8 @@ def _generate_post_body_block(ep: Endpoint, all_flags: list[str]) -> list[str]:
 def generate_skill_md(domain: str, endpoints: list[Endpoint]) -> str:
     """Generate SKILL.md for a domain."""
     cmd_name = f"surf-{domain}"
-    script_path = f"runtimes/cli/{domain}/scripts/{cmd_name}"
+    # Use bare command name — install.sh puts commands on PATH
+    script_path = cmd_name
 
     lines = []
     lines.append("---")

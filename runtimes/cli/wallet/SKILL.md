@@ -31,19 +31,19 @@ Full profile of any wallet — who it is, what it holds, and what it has been do
 
 ```bash
 # Step 1: Check total balance
-runtimes/cli/wallet/scripts/surf-wallet balance --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
+surf-wallet balance --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
 
 # Step 2: Identify the wallet (exchange, fund, whale, protocol, etc.)
-runtimes/cli/wallet/scripts/surf-wallet labels --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
+surf-wallet labels --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
 
 # Step 3: See all token holdings
-runtimes/cli/wallet/scripts/surf-wallet tokens --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
+surf-wallet tokens --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
 
 # Step 4: Recent transfers — what tokens are moving?
-runtimes/cli/wallet/scripts/surf-wallet transfers --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --chain eth --limit 10
+surf-wallet transfers --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --chain eth --limit 10
 
 # Step 5: Check PnL performance
-runtimes/cli/wallet/scripts/surf-wallet pnl --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
+surf-wallet pnl --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
 ```
 
 **What to look for:** Large stablecoin holdings suggest dry powder for buying. Recent transfers to exchanges may indicate upcoming sells. Labels reveal if the wallet belongs to a known entity (exchange hot wallet, fund, protocol treasury).
@@ -54,17 +54,17 @@ Find and monitor the largest wallets by balance or PnL.
 
 ```bash
 # Step 1: Top wallets by total balance
-runtimes/cli/wallet/scripts/surf-wallet top --metric balance --limit 10
+surf-wallet top --metric balance --limit 10
 
 # Step 2: Top wallets by PnL (most profitable traders)
-runtimes/cli/wallet/scripts/surf-wallet top --metric pnl --limit 10
+surf-wallet top --metric pnl --limit 10
 
 # Step 3: Hyperliquid whale positions
-runtimes/cli/wallet/scripts/surf-wallet top --metric hyperliquid_whales --limit 10
+surf-wallet top --metric hyperliquid_whales --limit 10
 
 # Step 4: Investigate a specific whale from the results
-runtimes/cli/wallet/scripts/surf-wallet tokens --address <whale_address>
-runtimes/cli/wallet/scripts/surf-wallet transfers --address <whale_address> --chain eth --limit 10
+surf-wallet tokens --address <whale_address>
+surf-wallet transfers --address <whale_address> --chain eth --limit 10
 ```
 
 **What to look for:** Compare top-balance vs top-PnL lists — wallets on both are consistently successful. Track what top PnL wallets are currently holding for alpha. Hyperliquid whales show leveraged positioning sentiment.
@@ -75,19 +75,19 @@ Identify what profitable wallets are buying and selling.
 
 ```bash
 # Step 1: Find top PnL wallets (the "smart money")
-runtimes/cli/wallet/scripts/surf-wallet top --metric pnl --limit 5
+surf-wallet top --metric pnl --limit 5
 
 # Step 2: Check each wallet's current holdings
-runtimes/cli/wallet/scripts/surf-wallet tokens --address <smart_money_address>
+surf-wallet tokens --address <smart_money_address>
 
 # Step 3: Check recent transfers for new positions
-runtimes/cli/wallet/scripts/surf-wallet transfers --address <smart_money_address> --chain eth --limit 10
+surf-wallet transfers --address <smart_money_address> --chain eth --limit 10
 
 # Step 4: Label them to understand if they are funds, MEV bots, etc.
-runtimes/cli/wallet/scripts/surf-wallet labels --address <smart_money_address>
+surf-wallet labels --address <smart_money_address>
 
 # Step 5: Batch label multiple wallets at once
-runtimes/cli/wallet/scripts/surf-wallet labels-batch --addresses '["0xaddr1...", "0xaddr2...", "0xaddr3..."]'
+surf-wallet labels-batch --addresses '["0xaddr1...", "0xaddr2...", "0xaddr3..."]'
 ```
 
 **What to look for:** Multiple smart money wallets accumulating the same token = strong signal. Check if holdings overlap with `surf-token top --metric exchange_outflow` (tokens leaving exchanges). Ignore wallets labeled as exchanges or MEV bots — focus on funds and individual whales.
@@ -98,16 +98,16 @@ Analyze a wallet's DeFi exposure and portfolio composition.
 
 ```bash
 # Step 1: Get all token holdings (includes DeFi positions across chains)
-runtimes/cli/wallet/scripts/surf-wallet tokens --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
+surf-wallet tokens --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
 
 # Step 2: Filter to specific chain
-runtimes/cli/wallet/scripts/surf-wallet tokens --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --chain eth
+surf-wallet tokens --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --chain eth
 
 # Step 3: Check NFT holdings
-runtimes/cli/wallet/scripts/surf-wallet nft --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --chain eth --limit 10
+surf-wallet nft --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --chain eth --limit 10
 
 # Step 4: Total balance for portfolio overview
-runtimes/cli/wallet/scripts/surf-wallet balance --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
+surf-wallet balance --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
 ```
 
 **What to look for:** Tokens with `price_usd` and `value_usd` fields show valued positions. Tokens without prices may be LP tokens, receipt tokens, or airdrops. Compare chain distribution to understand multi-chain exposure. High stablecoin % = defensive positioning.
@@ -118,24 +118,24 @@ When a large transfer is detected, quickly assess the full picture.
 
 ```bash
 # 1. Identify the wallet
-runtimes/cli/wallet/scripts/surf-wallet labels --address <whale_address>
-runtimes/cli/wallet/scripts/surf-wallet balance --address <whale_address>
+surf-wallet labels --address <whale_address>
+surf-wallet balance --address <whale_address>
 
 # 2. See full transfer context
-runtimes/cli/wallet/scripts/surf-wallet transfers --address <whale_address> --chain eth --limit 20
+surf-wallet transfers --address <whale_address> --chain eth --limit 20
 
 # 3. Check the token being moved
-runtimes/cli/token/scripts/surf-token info --address <token_address> --chain eth
-runtimes/cli/token/scripts/surf-token holders --address <token_address> --chain eth --limit 10
+surf-token info --address <token_address> --chain eth
+surf-token holders --address <token_address> --chain eth --limit 10
 
 # 4. Check exchange flow for the token (is this part of a larger trend?)
-runtimes/cli/token/scripts/surf-token metrics --asset <symbol> --metric exchange_flow --window hour --limit 24
+surf-token metrics --asset <symbol> --metric exchange_flow --window hour --limit 24
 
 # 5. Check recent market price action
-runtimes/cli/market/scripts/surf-market price --ids <coingecko_id> --vs usd
+surf-market price --ids <coingecko_id> --vs usd
 
 # 6. Check for related news
-runtimes/cli/news/scripts/surf-news search --query "<token_name>"
+surf-news search --query "<token_name>"
 ```
 
 **What to look for:** Transfers TO exchanges = potential sell. Transfers FROM exchanges = accumulation. Large transfers between unknown wallets may be OTC deals. Compare transfer size to daily volume for market impact estimate.

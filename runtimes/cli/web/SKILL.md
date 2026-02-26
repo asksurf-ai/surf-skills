@@ -21,16 +21,16 @@ Search the web and fetch full page content for crypto research, protocol documen
 Find documentation, official sites, and technical details.
 ```bash
 # Search for protocol documentation
-runtimes/cli/web/scripts/surf-web search --query "ethereum roadmap 2026" --limit 5
+surf-web search --query "ethereum roadmap 2026" --limit 5
 
 # Search for a DeFi protocol
-runtimes/cli/web/scripts/surf-web search --query "aave v3 documentation" --limit 5
+surf-web search --query "aave v3 documentation" --limit 5
 
 # Search for a new L2 chain
-runtimes/cli/web/scripts/surf-web search --query "base chain developer docs" --limit 3
+surf-web search --query "base chain developer docs" --limit 3
 
 # Fetch the actual page content for deep reading
-runtimes/cli/web/scripts/surf-web fetch --url https://ethereum.org/roadmap
+surf-web fetch --url https://ethereum.org/roadmap
 ```
 **What to look for:** Official documentation URLs (.org, .io domains), GitHub repos, and audit reports. Use `fetch` to read full page content after finding relevant URLs via `search`.
 
@@ -38,16 +38,16 @@ runtimes/cli/web/scripts/surf-web fetch --url https://ethereum.org/roadmap
 Use the `--site` filter to restrict results to trusted sources.
 ```bash
 # Search only CoinDesk
-runtimes/cli/web/scripts/surf-web search --query "ethereum" --site coindesk.com --limit 3
+surf-web search --query "ethereum" --site coindesk.com --limit 3
 
 # Search only CoinTelegraph
-runtimes/cli/web/scripts/surf-web search --query "bitcoin regulation" --site cointelegraph.com --limit 3
+surf-web search --query "bitcoin regulation" --site cointelegraph.com --limit 3
 
 # Search only a project's docs
-runtimes/cli/web/scripts/surf-web search --query "lending pools" --site docs.aave.com --limit 3
+surf-web search --query "lending pools" --site docs.aave.com --limit 3
 
 # Search DeFi Llama for TVL data
-runtimes/cli/web/scripts/surf-web search --query "total value locked" --site defillama.com --limit 3
+surf-web search --query "total value locked" --site defillama.com --limit 3
 ```
 **What to look for:** Site-filtered searches are useful when you need information from a specific trusted source. Combine with `fetch` to read the full article.
 
@@ -55,13 +55,13 @@ runtimes/cli/web/scripts/surf-web search --query "total value locked" --site def
 Parse any URL into clean, readable text content.
 ```bash
 # Read a protocol's homepage
-runtimes/cli/web/scripts/surf-web fetch --url https://ethereum.org
+surf-web fetch --url https://ethereum.org
 
 # Read a specific documentation page
-runtimes/cli/web/scripts/surf-web fetch --url https://docs.aave.com/hub
+surf-web fetch --url https://docs.aave.com/hub
 
 # Read a blog post or article
-runtimes/cli/web/scripts/surf-web fetch --url https://vitalik.eth.limo
+surf-web fetch --url https://vitalik.eth.limo
 ```
 **What to look for:** The `content` field contains the full parsed page text. The `title` and `url` fields confirm you fetched the right page. Use this to extract specific data points, quotes, or technical specifications.
 
@@ -69,16 +69,16 @@ runtimes/cli/web/scripts/surf-web fetch --url https://vitalik.eth.limo
 Investigate a project's legitimacy and technical foundation.
 ```bash
 # 1. Find the project's official presence
-runtimes/cli/web/scripts/surf-web search --query "projectname crypto official site" --limit 5
+surf-web search --query "projectname crypto official site" --limit 5
 
 # 2. Look for audit reports
-runtimes/cli/web/scripts/surf-web search --query "projectname smart contract audit" --limit 3
+surf-web search --query "projectname smart contract audit" --limit 3
 
 # 3. Check for team information
-runtimes/cli/web/scripts/surf-web search --query "projectname team founders" --limit 3
+surf-web search --query "projectname team founders" --limit 3
 
 # 4. Read the documentation
-runtimes/cli/web/scripts/surf-web fetch --url https://docs.projectname.io
+surf-web fetch --url https://docs.projectname.io
 ```
 **What to look for:** Verified audit reports from firms like Trail of Bits, OpenZeppelin, Certik. Active GitHub repositories. Team members with verifiable backgrounds. Red flags: anonymous team with no audits, copied documentation, no GitHub activity.
 
@@ -88,31 +88,31 @@ runtimes/cli/web/scripts/surf-web fetch --url https://docs.projectname.io
 Combine web data with news and market data for full analysis.
 ```bash
 # 1. Web search for protocol overview
-runtimes/cli/web/scripts/surf-web search --query "lido staking protocol" --limit 3
+surf-web search --query "lido staking protocol" --limit 3
 
 # 2. Fetch documentation for details
-runtimes/cli/web/scripts/surf-web fetch --url https://docs.lido.fi
+surf-web fetch --url https://docs.lido.fi
 
 # 3. Get recent news (use surf-news)
-runtimes/cli/news/scripts/surf-news search --query "lido staking" --limit 5
+surf-news search --query "lido staking" --limit 5
 
 # 4. Check token price and market data (use surf-market)
-runtimes/cli/market/scripts/surf-market price --ids lido-dao --vs-currencies usd
-runtimes/cli/market/scripts/surf-market indicator --name rsi --symbol LDO/USDT
+surf-market price --ids lido-dao --vs-currencies usd
+surf-market indicator --name rsi --symbol LDO/USDT
 ```
 
 ### Verify a Claim or Rumor
 Fact-check information circulating in crypto communities.
 ```bash
 # 1. Search for the claim
-runtimes/cli/web/scripts/surf-web search --query "claim or rumor text here" --limit 5
+surf-web search --query "claim or rumor text here" --limit 5
 
 # 2. Check reputable news sources
-runtimes/cli/web/scripts/surf-web search --query "claim" --site coindesk.com --limit 3
-runtimes/cli/web/scripts/surf-web search --query "claim" --site theblock.co --limit 3
+surf-web search --query "claim" --site coindesk.com --limit 3
+surf-web search --query "claim" --site theblock.co --limit 3
 
 # 3. Cross-reference with news database (use surf-news)
-runtimes/cli/news/scripts/surf-news search --query "claim keywords" --limit 5
+surf-news search --query "claim keywords" --limit 5
 ```
 
 ## Tips

@@ -20,7 +20,7 @@ Use this skill **first**, before any other surf-core skill, when:
 
 ```bash
 # Open browser for Google Sign-In (one-click)
-runtimes/cli/login/scripts/surf-session login
+surf-session login
 # → Opens browser, user clicks Google account, session saved automatically.
 ```
 
@@ -32,26 +32,26 @@ Agent workflow:
 ### Manual JWT (Advanced, no auto-refresh)
 
 ```bash
-runtimes/cli/login/scripts/surf-session configure --token <JWT>
+surf-session configure --token <JWT>
 ```
 
 ## Session Management
 
 ```bash
 # Verify connectivity (auto-refreshes if needed)
-runtimes/cli/login/scripts/surf-session check
+surf-session check
 
 # View session info (decoded JWT, expiry, refresh token status)
-runtimes/cli/login/scripts/surf-session status
+surf-session status
 
 # Manually refresh access token
-runtimes/cli/login/scripts/surf-session refresh
+surf-session refresh
 
 # Check credit balance
-runtimes/cli/login/scripts/surf-session credits
+surf-session credits
 
 # Remove session
-runtimes/cli/login/scripts/surf-session logout
+surf-session logout
 ```
 
 ## Auto-Refresh
@@ -78,7 +78,7 @@ Environment variables (`HERMOD_TOKEN`, `HERMOD_URL`) override the file.
 ## Staging
 
 ```bash
-runtimes/cli/login/scripts/surf-session login --url https://api.stg.ask.surf/gateway
+surf-session login --url https://api.stg.ask.surf/gateway
 ```
 
 See `knowledge/auth/auth.md` for full authentication architecture.

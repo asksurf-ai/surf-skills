@@ -15,16 +15,16 @@ Session persists to `~/.surf-core/session.json`:
 
 ```bash
 # Login (opens browser for Google Sign-In)
-runtimes/cli/login/scripts/surf-session login
+surf-session login
 
 # Check session status
-runtimes/cli/login/scripts/surf-session check
+surf-session check
 
 # View credit balance
-runtimes/cli/login/scripts/surf-session credits
+surf-session credits
 
 # Manual refresh
-runtimes/cli/login/scripts/surf-session refresh
+surf-session refresh
 ```
 
 ## Auto-Refresh

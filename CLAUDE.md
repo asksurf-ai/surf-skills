@@ -39,13 +39,13 @@ surf-core/
 
 ```bash
 # 1. Login (opens browser, one-click Google Sign-In)
-runtimes/cli/login/scripts/surf-session login
+surf-session login
 
 # 2. Verify connectivity
-runtimes/cli/login/scripts/surf-session check
+surf-session check
 
 # 3. Use any data skill
-runtimes/cli/market/scripts/surf-market price --ids bitcoin --vs usd
+surf-market price --ids bitcoin --vs usd
 ```
 
 Session persists to `~/.surf-core/session.json` (access_token 1h + refresh_token 30d). Login once, use for 30 days.
@@ -111,8 +111,8 @@ Proxy routes forward to upstream APIs with automatic API key injection: `/gatewa
 ### API Reference (hermod-api)
 
 ```bash
-runtimes/cli/hermod-api/scripts/surf-api sync              # Fetch latest specs → ~/.surf-core/api-docs/
-runtimes/cli/hermod-api/scripts/surf-api endpoints trading  # List trading endpoints
-runtimes/cli/hermod-api/scripts/surf-api show /wallet/balance  # Full params + curl example
-runtimes/cli/hermod-api/scripts/surf-api search holders     # Search across all 273 endpoints
+surf-api sync              # Fetch latest specs → ~/.surf-core/api-docs/
+surf-api endpoints trading  # List trading endpoints
+surf-api show /wallet/balance  # Full params + curl example
+surf-api search holders     # Search across all 273 endpoints
 ```

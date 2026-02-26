@@ -48,19 +48,19 @@ Investigate a protocol's fundamentals, metrics, and team.
 
 ```bash
 # Step 1: Find the project ID
-runtimes/cli/project/scripts/surf-project search --query uniswap
+surf-project search --query uniswap
 
 # Step 2: Get the overview (description, category, website)
-runtimes/cli/project/scripts/surf-project overview --id uniswap
+surf-project overview --id uniswap
 
 # Step 3: Check on-chain metrics — TVL, revenue, fees
-runtimes/cli/project/scripts/surf-project metrics --id uniswap --metric tvl
-runtimes/cli/project/scripts/surf-project metrics --id uniswap --metric revenue
-runtimes/cli/project/scripts/surf-project metrics --id uniswap --metric fees
+surf-project metrics --id uniswap --metric tvl
+surf-project metrics --id uniswap --metric revenue
+surf-project metrics --id uniswap --metric fees
 
 # Step 4: Review tokenomics and team
-runtimes/cli/project/scripts/surf-project tokenomics --id uniswap
-runtimes/cli/project/scripts/surf-project team --id uniswap
+surf-project tokenomics --id uniswap
+surf-project team --id uniswap
 ```
 
 **What to look for:** Compare revenue vs fees to understand fee capture. Check if TVL is growing or declining. Review token distribution for insider concentration.
@@ -71,14 +71,14 @@ Find the top protocols in a category and compare them.
 
 ```bash
 # Step 1: Get top protocols by TVL
-runtimes/cli/project/scripts/surf-project top --metric tvl
+surf-project top --metric tvl
 
 # Step 2: Get top by revenue to find profitable protocols
-runtimes/cli/project/scripts/surf-project top --metric revenue
+surf-project top --metric revenue
 
 # Step 3: Compare specific protocols' metrics over time
-runtimes/cli/project/scripts/surf-project metrics --id aave --metric tvl --start 2025-01-01 --end 2025-06-30
-runtimes/cli/project/scripts/surf-project metrics --id compound --metric tvl --start 2025-01-01 --end 2025-06-30
+surf-project metrics --id aave --metric tvl --start 2025-01-01 --end 2025-06-30
+surf-project metrics --id compound --metric tvl --start 2025-01-01 --end 2025-06-30
 ```
 
 **What to look for:** Protocols with high revenue relative to TVL have better capital efficiency. Rising DAU with flat TVL may indicate retail adoption.
@@ -93,15 +93,15 @@ Discover upcoming token generation events and airdrops.
 
 ```bash
 # Step 1: Find projects with upcoming TGEs
-runtimes/cli/project/scripts/surf-project top --metric upcoming_tge
+surf-project top --metric upcoming_tge
 
 # Step 2: Find projects with upcoming airdrops
-runtimes/cli/project/scripts/surf-project top --metric upcoming_airdrop
+surf-project top --metric upcoming_airdrop
 
 # Step 3: Research a promising project
-runtimes/cli/project/scripts/surf-project overview --id arbitrum
-runtimes/cli/project/scripts/surf-project funding --id arbitrum
-runtimes/cli/project/scripts/surf-project smart-followers --id arbitrum
+surf-project overview --id arbitrum
+surf-project funding --id arbitrum
+surf-project smart-followers --id arbitrum
 ```
 
 **What to look for:** Projects with strong VC backing (check funding), growing smart follower counts, and active development. High mindshare before TGE often signals community interest.
@@ -112,17 +112,17 @@ Assess whether a protocol is healthy or declining.
 
 ```bash
 # Step 1: Check user activity trend
-runtimes/cli/project/scripts/surf-project metrics --id lido --metric users
+surf-project metrics --id lido --metric users
 
 # Step 2: Check TVL and revenue trends
-runtimes/cli/project/scripts/surf-project metrics --id lido --metric tvl
-runtimes/cli/project/scripts/surf-project metrics --id lido --metric revenue
+surf-project metrics --id lido --metric tvl
+surf-project metrics --id lido --metric revenue
 
 # Step 3: Check mindshare — is attention growing or fading?
-runtimes/cli/project/scripts/surf-project mindshare --id lido --timeframe 7d
+surf-project mindshare --id lido --timeframe 7d
 
 # Step 4: Check smart follower trend
-runtimes/cli/project/scripts/surf-project smart-followers-history --id lido
+surf-project smart-followers-history --id lido
 ```
 
 **What to look for:** Declining users + declining TVL = red flag. Growing mindshare with flat metrics may indicate hype without substance. Smart follower growth often leads price action.
@@ -133,12 +133,12 @@ Research what a specific VC firm has invested in.
 
 ```bash
 # Step 1: Get the VC's portfolio
-runtimes/cli/project/scripts/surf-project vc-portfolio --id a16z-crypto
+surf-project vc-portfolio --id a16z-crypto
 
 # Step 2: Deep-dive into a portfolio company
-runtimes/cli/project/scripts/surf-project overview --id uniswap
-runtimes/cli/project/scripts/surf-project funding --id uniswap
-runtimes/cli/project/scripts/surf-project token-info --id uniswap
+surf-project overview --id uniswap
+surf-project funding --id uniswap
+surf-project token-info --id uniswap
 ```
 
 **What to look for:** Look for patterns in the VC's thesis (L1 vs DeFi vs infra). Cross-reference with `funding` to see round sizes and co-investors.
@@ -151,19 +151,19 @@ Combine project data with social sentiment and on-chain activity for comprehensi
 
 ```bash
 # Project fundamentals
-runtimes/cli/project/scripts/surf-project overview --id aave
-runtimes/cli/project/scripts/surf-project metrics --id aave --metric tvl
-runtimes/cli/project/scripts/surf-project metrics --id aave --metric revenue
-runtimes/cli/project/scripts/surf-project funding --id aave
-runtimes/cli/project/scripts/surf-project tokenomics --id aave
-runtimes/cli/project/scripts/surf-project team --id aave
+surf-project overview --id aave
+surf-project metrics --id aave --metric tvl
+surf-project metrics --id aave --metric revenue
+surf-project funding --id aave
+surf-project tokenomics --id aave
+surf-project team --id aave
 
 # Social sentiment (use surf-social)
-runtimes/cli/social/scripts/surf-social sentiment --id aave
-runtimes/cli/social/scripts/surf-social search --query "aave" --limit 10
+surf-social sentiment --id aave
+surf-social search --query "aave" --limit 10
 
 # On-chain DEX activity (use surf-onchain)
-runtimes/cli/onchain/scripts/surf-onchain sql --sql "SELECT project, count() AS trades, sum(amount_usd) AS volume FROM dex_ethereum.trades WHERE block_time >= today() - 7 AND token_pair LIKE '%AAVE%' GROUP BY project ORDER BY volume DESC LIMIT 10"
+surf-onchain sql --sql "SELECT project, count() AS trades, sum(amount_usd) AS volume FROM dex_ethereum.trades WHERE block_time >= today() - 7 AND token_pair LIKE '%AAVE%' GROUP BY project ORDER BY volume DESC LIMIT 10"
 ```
 
 ## Tips

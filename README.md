@@ -35,35 +35,42 @@ surf-core/
 └── SKILL-SPEC.md
 ```
 
-## Setup
+## Install
 
 ```bash
-# Install all skills
-npx skills add cyberconnecthq/surf-core --global --all
-
-# Or symlink for development
 git clone git@github.com:cyberconnecthq/surf-core.git
-ln -s /path/to/surf-core ~/.claude/skills/surf-core
+cd surf-core && ./install.sh
+```
+
+This does three things:
+1. Symlinks skills to `~/.claude/skills/` — agent discovery (Claude Code, OpenCode, Gemini CLI)
+2. Symlinks commands to `~/.surf-core/bin/` — direct execution
+3. Adds `~/.surf-core/bin` to PATH — commands work from anywhere
+
+```bash
+./install.sh --check    # Verify installation
+./install.sh --list     # List available skills
+./install.sh --remove   # Uninstall
 ```
 
 ## Quick Start
 
 ```bash
 # 1. Login (one-click Google Sign-In)
-runtimes/cli/login/scripts/surf-session login
+surf-session login
 
 # 2. Get BTC price
-runtimes/cli/market/scripts/surf-market price --ids bitcoin --vs usd
+surf-market price --ids bitcoin --vs usd
 
 # 3. Check Vitalik's wallet
-runtimes/cli/wallet/scripts/surf-wallet balance --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
+surf-wallet balance --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
 
 # 4. Search social/X for crypto discussions
-runtimes/cli/social/scripts/surf-social search --query "ethereum ETF"
+surf-social search --query "ethereum ETF"
 
 # 5. Explore all 273 API endpoints
-runtimes/cli/hermod-api/scripts/surf-api sync
-runtimes/cli/hermod-api/scripts/surf-api search holders
+surf-api sync
+surf-api search holders
 ```
 
 ## Architecture
