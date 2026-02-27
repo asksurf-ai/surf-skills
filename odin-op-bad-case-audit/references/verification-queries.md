@@ -152,7 +152,7 @@ SELECT
     lt.tags,
     length(lt.input) as input_len,
     length(lt.output) as output_len
-FROM default.langfuse_traces lt
+FROM langfuse_cloud.traces lt
 WHERE lt.session_id = '{SESSION_ID}'
 ORDER BY lt.timestamp
 ```
@@ -266,7 +266,7 @@ LIMIT 10
 - **Column typo:** AI response is in `ai_massage` (not `ai_message`)
 - **Use for:** Getting the full conversation context
 
-### Table: `default.langfuse_traces`
+### Table: `langfuse_cloud.traces`
 - **Instance:** `analytics`
 - **Size:** ~7.6M rows
 - **Use for:** Matching sessions to traces for tool-level analysis
@@ -335,7 +335,7 @@ ORDER BY e.faithfulness_score ASC
 
 ```sql
 -- Instance: analytics
--- When message_id join yields few results, use session_id via langfuse_traces
+-- When message_id join yields few results, use session_id via langfuse_cloud.traces
 SELECT
     e.observation_id,
     e.trace_id,
@@ -345,7 +345,7 @@ SELECT
     s.severity,
     s.human_message
 FROM default.response_eval_scores e
-JOIN default.langfuse_traces lt ON e.trace_id = lt.id
+JOIN langfuse_cloud.traces lt ON e.trace_id = lt.id
 JOIN default.message_sentiments s ON lt.session_id = s.session_id
 WHERE s.sentiment IN ('inaccuracy_complaint', 'correction', 'frustration', 'doubt_uncertainty')
   AND e.faithfulness_score < 0.5

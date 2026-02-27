@@ -303,7 +303,7 @@ SELECT
     id, name, type, start_time,
     substring(input, 1, 2000) as code_input,
     substring(output, 1, 2000) as code_output
-FROM default.langfuse_observations
+FROM langfuse_cloud.observations
 WHERE trace_id = '{trace_id}'
   AND name = 'execute_code'
 ORDER BY start_time
@@ -450,7 +450,7 @@ SELECT
     name,
     substring(toString(input), 1, 500) as input_params,
     substring(toString(output), 1, 300) as output_preview
-FROM default.langfuse_observations
+FROM langfuse_cloud.observations
 WHERE trace_id = '{trace_id}'
   AND type = 'TOOL'
 ORDER BY start_time
@@ -539,8 +539,8 @@ SELECT
     substring(o1.output, 1, 500) as tool_output,
     o2.name as llm_name,
     substring(o2.output, 1, 500) as llm_response
-FROM default.langfuse_observations o1
-JOIN default.langfuse_observations o2
+FROM langfuse_cloud.observations o1
+JOIN langfuse_cloud.observations o2
     ON o1.trace_id = o2.trace_id
     AND o2.start_time > o1.start_time
     AND o2.type = 'GENERATION'

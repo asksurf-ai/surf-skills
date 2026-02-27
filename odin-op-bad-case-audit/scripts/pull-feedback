@@ -118,7 +118,7 @@ SELECT
     lt.session_id,
     lt.timestamp,
     lt.tags
-FROM default.langfuse_traces lt
+FROM langfuse_cloud.traces lt
 WHERE lt.session_id IN (
     SELECT DISTINCT toString(session_id)
     FROM default.feedbacks

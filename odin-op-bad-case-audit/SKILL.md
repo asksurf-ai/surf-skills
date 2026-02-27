@@ -25,7 +25,7 @@ Systematic workflow for auditing AI bad cases from user feedback. Turns raw comp
 ```
 ClickHouse feedbacks (last 7 days)
   + chat_messages (user queries + AI responses)
-  + langfuse_traces (tool calls, routing decisions)
+  + langfuse_cloud.traces (tool calls, routing decisions)
   ──→ Verified bad cases with root cause classification
   ──→ Updated Notion bad case doc
 ```
@@ -54,7 +54,7 @@ For one-time deep audits beyond the daily pipeline:
 
 ```
 Phase 1: uv run python scripts/mine_faithfulness.py --days 30
-  → Mines langfuse_scores (faithfulness_score records)
+  → Mines langfuse_cloud.scores (faithfulness_score records)
   → Outputs: data/faithfulness_mining/ (daily trends, tiers, enriched failures)
 
 Phase 2: uv run python scripts/test_eval_pipeline.py --days 30 --sample 500 --concurrency 10
@@ -157,7 +157,7 @@ SELECT
     lt.session_id,
     lt.timestamp,
     lt.tags
-FROM default.langfuse_traces lt
+FROM langfuse_cloud.traces lt
 WHERE lt.session_id = '{session_id}'
 ORDER BY lt.timestamp
 ```
@@ -182,7 +182,7 @@ For each factual claim in the AI response:
    SELECT id, name, type, start_time,
           substring(input, 1, 200) as input_preview,
           substring(output, 1, 200) as output_preview
-   FROM default.langfuse_observations
+   FROM langfuse_cloud.observations
    WHERE trace_id = '{trace_id}'
    ORDER BY start_time
    ```

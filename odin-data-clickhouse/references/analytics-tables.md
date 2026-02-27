@@ -69,10 +69,9 @@ Three databases:
 | surf_platform | Nullable(String) | web/ios/android |
 | created_at | DateTime64(3) | |
 
-### `langfuse_traces` / `langfuse_observations` / `langfuse_scores` (DEPRECATED)
+### `langfuse_traces` / `langfuse_observations` / `langfuse_scores` (DROPPED)
 
-> **Replaced by `langfuse_cloud.traces`, `langfuse_cloud.observations`, `langfuse_cloud.scores`.**
-> Old tables in `default` database will be dropped after migration verification.
+> **Dropped.** Use `langfuse_cloud.traces`, `langfuse_cloud.observations`, `langfuse_cloud.scores` instead.
 
 ---
 
@@ -193,13 +192,13 @@ Self-hosted Langfuse writes directly to the `langfuse` database. This is the pre
 > WHERE m.created_at >= today() - 1
 > ```
 >
-> **Cloud export (`default.langfuse_traces`)** — no `message_id` in metadata. Join via `session_id` + timestamp proximity:
+> **Cloud export (`langfuse_cloud.traces`)** — no `message_id` in metadata. Join via `session_id` + timestamp proximity:
 > ```sql
 > -- Session-level: match messages to traces by session_id
 > -- (requires toString() cast since chat tables use UUID, traces use String)
 > SELECT m.id, m.human_message, t.id as trace_id, t.name as flow
 > FROM default.chat_messages m
-> INNER JOIN default.langfuse_traces t
+> INNER JOIN langfuse_cloud.traces t
 >     ON toString(m.session_id) = t.session_id
 >     AND abs(dateDiff('millisecond', m.created_at, t.timestamp)) < 1000
 > WHERE m.created_at >= today() - 1
