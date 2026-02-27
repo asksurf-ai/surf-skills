@@ -87,7 +87,13 @@ except (KeyError, TypeError):
 # Try loading config from AWS Secrets Manager into memory (falls back silently)
 load_config_from_aws() {
     command_exists aws || return 0
-    CONFIG_JSON=$(timeout 5 aws secretsmanager get-secret-value \
+    local timeout_cmd=""
+    if command_exists timeout; then
+        timeout_cmd="timeout 5"
+    elif command_exists gtimeout; then
+        timeout_cmd="gtimeout 5"
+    fi
+    CONFIG_JSON=$($timeout_cmd aws secretsmanager get-secret-value \
         --secret-id "postgres/prd-odin/bot_ro" \
         --query "SecretString" --output text 2>/dev/null) || CONFIG_JSON=""
 }
