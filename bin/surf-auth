@@ -9,7 +9,7 @@
 set -euo pipefail
 
 SURF_SESSION_FILE="${HOME}/.surf-core/session.json"
-: "${MUNINN_URL:=https://api.stg.ask.surf/muninn}"
+: "${MUNINN_URL:=https://api.ask.surf/muninn}"
 
 # --- Read session ---
 if [[ ! -f "$SURF_SESSION_FILE" ]]; then
@@ -88,8 +88,8 @@ print(json.load(sys.stdin).get('data', {}).get('refresh_token', ''))
           # Update session file
           _hermod_url=$(python3 -c "
 import json, sys
-print(json.load(open(sys.argv[1])).get('hermod_url', 'https://api.stg.ask.surf/gateway'))
-" "$SURF_SESSION_FILE" 2>/dev/null) || _hermod_url="https://api.stg.ask.surf/gateway"
+print(json.load(open(sys.argv[1])).get('hermod_url', 'https://api.ask.surf/gateway'))
+" "$SURF_SESSION_FILE" 2>/dev/null) || _hermod_url="https://api.ask.surf/gateway"
 
           python3 -c "
 import json, sys

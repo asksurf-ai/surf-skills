@@ -89,7 +89,7 @@ install_restish_config() {
   # Determine hermod URL
   local hermod_url
   hermod_url=$(_hermod_url_from_session)
-  : "${hermod_url:=https://api.stg.ask.surf/gateway}"
+  : "${hermod_url:=https://api.ask.surf/gateway}"
 
   # Strip path suffix (e.g. /gateway) to get just the host for restish base URL.
   # Spec paths already contain the full prefix (e.g. /gateway/v1/market/price).
