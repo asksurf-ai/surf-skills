@@ -89,7 +89,12 @@ install_restish_config() {
   # Determine hermod URL
   local hermod_url
   hermod_url=$(_hermod_url_from_session)
-  : "${hermod_url:=https://api.stg.ask.surf}"
+  : "${hermod_url:=https://api.stg.ask.surf/gateway}"
+
+  # Strip path suffix (e.g. /gateway) to get just the host for restish base URL.
+  # Spec paths already contain the full prefix (e.g. /gateway/v1/market/price).
+  local base_url
+  base_url=$(echo "$hermod_url" | sed 's|/gateway$||; s|/gateway/$||')
 
   # Absolute path to surf-auth
   local surf_auth_path="$SCRIPT_DIR/bin/surf-auth"
@@ -105,6 +110,7 @@ apis_path = sys.argv[1]
 template_path = sys.argv[2]
 hermod_url = sys.argv[3]
 auth_path = sys.argv[4]
+base_url = sys.argv[5]
 
 with open(apis_path) as f:
     apis = json.load(f)
@@ -112,6 +118,7 @@ with open(apis_path) as f:
 with open(template_path) as f:
     tmpl_text = f.read()
 
+tmpl_text = tmpl_text.replace('__BASE_URL__', base_url)
 tmpl_text = tmpl_text.replace('__HERMOD_URL__', hermod_url)
 tmpl_text = tmpl_text.replace('__SURF_AUTH_PATH__', auth_path)
 tmpl = json.loads(tmpl_text)
@@ -121,7 +128,7 @@ apis['surf'] = tmpl['surf']
 with open(apis_path, 'w') as f:
     json.dump(apis, f, indent=2)
     f.write('\n')
-" "$apis_json" "$template" "$hermod_url" "$surf_auth_path"
+" "$apis_json" "$template" "$hermod_url" "$surf_auth_path" "$base_url"
     echo -e "  ${GREEN}merged${NC} 'surf' key into $apis_json"
   else
     # Fresh install: write from template
@@ -132,16 +139,18 @@ template_path = sys.argv[1]
 output_path = sys.argv[2]
 hermod_url = sys.argv[3]
 auth_path = sys.argv[4]
+base_url = sys.argv[5]
 
 with open(template_path) as f:
     content = f.read()
 
+content = content.replace('__BASE_URL__', base_url)
 content = content.replace('__HERMOD_URL__', hermod_url)
 content = content.replace('__SURF_AUTH_PATH__', auth_path)
 
 with open(output_path, 'w') as f:
     f.write(content)
-" "$template" "$apis_json" "$hermod_url" "$surf_auth_path"
+" "$template" "$apis_json" "$hermod_url" "$surf_auth_path" "$base_url"
     echo -e "  ${GREEN}created${NC} $apis_json"
   fi
 }
