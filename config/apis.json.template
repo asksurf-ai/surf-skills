@@ -1,7 +1,7 @@
 {
   "surf": {
-    "base": "__HERMOD_URL__",
-    "spec_files": ["__HERMOD_URL__/gateway/openapi.json"],
+    "base": "__BASE_URL__",
+    "spec_files": ["__HERMOD_URL__/openapi.json"],
     "profiles": {
       "default": {
         "auth": {
