@@ -12,7 +12,7 @@ SESSION_DIR="${HOME}/.surf-core"
 SESSION_FILE="${SESSION_DIR}/session.json"
 
 # Muninn auth base (same domain, different path prefix)
-: "${MUNINN_URL:=https://api.stg.ask.surf/muninn}"
+: "${MUNINN_URL:=https://api.ask.surf/muninn}"
 
 usage() {
   cat <<'EOF'
@@ -85,7 +85,7 @@ load_session() {
     fi
   fi
 
-  : "${HERMOD_URL:=https://api.stg.ask.surf/gateway}"
+  : "${HERMOD_URL:=https://api.ask.surf/gateway}"
 
   if [[ -z "${HERMOD_TOKEN:-}" ]]; then
     echo '{"error": "No session found. Run: surf-session login"}' >&2
@@ -204,7 +204,7 @@ cmd_login() {
     esac
   done
 
-  : "${hermod_url:=https://api.stg.ask.surf/gateway}"
+  : "${hermod_url:=https://api.ask.surf/gateway}"
 
   command -v python3 &>/dev/null || _fail "python3 is required"
 
@@ -249,7 +249,7 @@ cmd_refresh() {
   local refresh_token hermod_url
   refresh_token=$(read_session_field "refresh_token")
   hermod_url=$(read_session_field "hermod_url")
-  : "${hermod_url:=https://api.stg.ask.surf/gateway}"
+  : "${hermod_url:=https://api.ask.surf/gateway}"
 
   if [[ -z "$refresh_token" ]]; then
     echo '{"error": "No refresh_token in session. Login again: surf-session login"}' >&2
@@ -355,7 +355,7 @@ cmd_configure() {
     fi
   fi
 
-  : "${url:=https://api.stg.ask.surf/gateway}"
+  : "${url:=https://api.ask.surf/gateway}"
 
   save_session "$token" "$url"
 

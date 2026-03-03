@@ -33,7 +33,7 @@ User / Agent
     |        +--- OpenAPI 3.1 spec (auto-discovered)
     |                 |
     |                 v
-    |         Hermod Gateway (api.stg.ask.surf)
+    |         Hermod Gateway (api.ask.surf)
     |              |-- JWT verification
     |              |-- Credit deduction
     |              +-- Upstream APIs (CoinGecko, DeBank, etc.)

@@ -67,7 +67,7 @@ When a session has a `refresh_token` (from `login`):
 `~/.surf-core/session.json`:
 ```json
 {
-  "hermod_url": "https://api.stg.ask.surf/gateway",
+  "hermod_url": "https://api.ask.surf/gateway",
   "hermod_token": "<access_token>",
   "refresh_token": "<refresh_token>"
 }
