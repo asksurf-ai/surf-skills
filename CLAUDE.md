@@ -34,6 +34,11 @@ odin-skills/
 │   │   ├── setup.md
 │   │   └── surf-tables.md  # Key table schemas & gotchas (shared with ClickHouse)
 │   └── scripts/
+├── odin-dev-kseal/                # Sealed secrets management skill
+│   ├── SKILL.md
+│   └── scripts/
+│       ├── kseal-decrypt.py       # Decrypt cluster secret → plaintext secrets file
+│       └── kseal-seal.py          # Seal plaintext → sealed-secret.yaml + validate
 ├── odin-data-langfuse-trace/     # Langfuse trace analysis skill
 │   ├── SKILL.md
 │   ├── references/

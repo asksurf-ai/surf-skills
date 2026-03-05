@@ -17,6 +17,7 @@ Claude Code skills for Surf platform development.
 | `odin-op-bad-case-audit` | Audit AI bad cases from user feedback with Langfuse traces | AI/Agent engineers |
 | `odin-op-dev-progress` | Daily team progress report from GitHub commits | Team leads |
 | `odin-team-dev` | Team-based development — Goal mode (Architect+Developer+Tester+Pusher) and Parallel mode for M/L scope tasks | All engineers |
+| `odin-dev-kseal` | Sealed secrets management — decrypt, edit, seal, validate, and deploy K8s secrets via kubeseal + gitops | DevOps engineers |
 
 ## Setup
 
