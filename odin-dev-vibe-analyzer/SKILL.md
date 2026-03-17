@@ -50,23 +50,39 @@ After resolving to `session_id`, collect data from all three sources. Run these 
 
 ### A. Langfuse — Agent Reasoning
 
-The Langfuse session_id used by urania is **not** the same as the vibe session_id. The vibe session_id is stored as a trace attribute. Find traces by querying Datadog for the Langfuse trace_id:
+**Preferred method**: Use `fetch_trace.py --session` to fetch all traces in a vibe session directly. This handles credential loading (`~/.config/langfuse/config.json`), SOCKS proxy cleanup, and pagination automatically.
 
 ```bash
-# Step 1: Find Langfuse trace_id from Datadog logs
+cd surf-skills/odin-data-langfuse-trace
+
+# Fetch all traces in a session (recommended — one command, gets everything)
+uv run fetch_trace.py --session $SESSION_ID --fast
+
+# Output: /tmp/trace_analysis/sessions/<session_id>/
+#   session_timeline.txt     — chronological trace list with user inputs
+#   session_cost_summary.txt — aggregated costs across all traces
+#   traces/01_<id>/          — per-trace folders with:
+#     call_tree.txt           — execution flow and timing
+#     tools_only.txt          — what tools/APIs the agent called
+#     llm_only.txt            — LLM decisions and reasoning
+#     cost_summary.txt        — token usage and costs
+#     trace_input.txt         — user's message (what they asked)
+#     trace_output.txt        — agent's final response
+```
+
+**Fallback** (if you already know a specific trace_id from Datadog):
+
+```bash
+# Find trace_id from Datadog logs (not always available)
 cd surf-skills/odin-dev-datadog
 uv run python scripts/ddlog.py query "@session_id:$SESSION_ID AND LangfuseTracer" --time 7d -n 5 --verbose
 
-# Step 2: If trace_id found, fetch from Langfuse
+# Fetch single trace
 cd surf-skills/odin-data-langfuse-trace
 uv run fetch_trace.py <trace_id> --fast
-
-# Key files to read:
-#   call_tree.txt     — execution flow and timing
-#   tools_only.txt    — what tools/APIs the agent called
-#   llm_only.txt      — LLM decisions and reasoning
-#   cost_summary.txt  — token usage and costs
 ```
+
+**Setup**: Requires `~/.config/langfuse/config.json` — see `references/setup.md` if you get auth errors.
 
 ### B. Datadog — Service Telemetry
 
