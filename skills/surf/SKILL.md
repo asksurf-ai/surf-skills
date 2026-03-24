@@ -7,7 +7,7 @@ tools:
 
 # Surf Data API
 
-`surf` is a CLI for querying crypto data — markets, projects, tokens, wallets, on-chain data, social, news, prediction markets, and funds. 66 commands across 11 domains.
+`surf` is a CLI for querying crypto data — markets, projects, tokens, wallets, on-chain data, social, news, prediction markets, and funds.
 
 ## Setup
 
@@ -19,11 +19,12 @@ surf login
 ## Using Surf
 
 ```bash
+surf sync                  # Update local API schema (run if commands seem missing)
+surf list-operations       # Discover all available commands
 surf <command> --help      # Full params, enums, defaults for any command
-surf list-operations       # All 66 commands
 ```
 
-Always check `--help` before guessing parameters — it shows every flag with its type, enum values, and defaults.
+Always run `surf list-operations` to discover available commands — don't assume a fixed set. Always check `--help` before guessing parameters — it shows every flag with its type, enum values, and defaults.
 
 ### Getting clean data
 
@@ -61,11 +62,11 @@ surf search-news --q "aave"                            # Recent news
 
 ### Wallet Investigation
 
-"What does this wallet hold?"
+"What does this wallet hold?" — accepts 0x addresses, Solana addresses, or ENS names.
 
 ```bash
-surf wallet-detail --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
-surf wallet-transfers --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 --chain ethereum
+surf wallet-detail --address vitalik.eth
+surf wallet-transfers --address vitalik.eth --chain ethereum
 surf wallet-net-worth --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
 surf wallet-protocols --address 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
 ```
@@ -110,7 +111,7 @@ surf market-ranking --metric top_gainers --limit 20 -o json -f body.data > gaine
 |-------|---------|---------|
 | `--symbol` | Ticker, uppercase | `--symbol BTC` |
 | `--q` | Free-text search | `--q uniswap` |
-| `--address` | Contract or wallet address | `--address 0xdead...` |
+| `--address` | Contract or wallet address (also accepts ENS like `vitalik.eth`) | `--address 0xdead...` |
 | `--chain` | Blockchain (canonical names only) | `--chain ethereum` |
 | `--metric` | Metric name (varies by endpoint) | `--metric tvl` |
 | `--limit` | Results per page (default 20, max 100) | `--limit 50` |
@@ -124,39 +125,24 @@ surf market-ranking --metric top_gainers --limit 20 -o json -f body.data > gaine
 
 Not all chains available on every endpoint — check `--help`.
 
-## Command Index
+## Discovering Commands
 
-| Domain | Commands |
-|--------|----------|
-| **Market** (11) | `market-etf` `market-fear-greed` `market-futures` `market-liquidation-chart` `market-liquidation-exchange-list` `market-liquidation-order` `market-onchain-indicator` `market-options` `market-price` `market-price-indicator` `market-ranking` |
-| **Search** (10) | `search-airdrop` `search-events` `search-fund` `search-news` `search-polymarket` `search-project` `search-social` `search-social-people` `search-wallet` `search-web` |
-| **Wallet** (8) | `wallet-approvals` `wallet-chains` `wallet-detail` `wallet-history` `wallet-labels-batch` `wallet-net-worth` `wallet-protocols` `wallet-transfers` |
-| **Social** (7) | `social-detail` `social-mindshare` `social-ranking` `social-smart-followers-history` `social-tweets` `social-user` `social-user-posts` |
-| **Kalshi** (7) | `kalshi-events` `kalshi-markets` `kalshi-open-interest` `kalshi-prices` `kalshi-ranking` `kalshi-search` `kalshi-trades` |
-| **Polymarket** (7) | `polymarket-events` `polymarket-markets` `polymarket-open-interest` `polymarket-positions` `polymarket-prices` `polymarket-ranking` `polymarket-trades` |
-| **Onchain** (4) | `onchain-schema` `onchain-sql` `onchain-structured-query` `onchain-tx` |
-| **Token** (4) | `token-dex-trades` `token-holders` `token-tokenomics` `token-transfers` |
-| **Project** (3) | `project-defi-metrics` `project-defi-ranking` `project-detail` |
-| **Fund** (3) | `fund-detail` `fund-portfolio` `fund-ranking` |
-| **News** (1) | `news-ai` |
-| **Web** (1) | `web-fetch` |
+Don't rely on a hardcoded list — commands are added frequently. Use discovery:
 
-## Credits
+```bash
+surf list-operations                    # All available commands
+surf list-operations | grep wallet      # Find commands in a domain
+surf sync                               # Refresh local schema if a command seems missing
+```
 
-| Domain | Cost | Domain | Cost |
-|--------|------|--------|------|
-| Market | 1 | Social | 1 |
-| Search | 1 | News | 1 |
-| Project | 1 | Web | 1 |
-| Token | 1 | Fund | 1 |
-| Wallet | 1–2 | Kalshi | 1 |
-| Onchain | 5 | Polymarket | 1 |
+Commands are grouped by domain prefix: `market-*`, `search-*`, `wallet-*`, `social-*`, `kalshi-*`, `polymarket-*`, `onchain-*`, `token-*`, `project-*`, `fund-*`, `news-*`, `web-*`.
 
 ## Troubleshooting
 
-- **Auth errors**: Run `surf login`
-- **Unknown command**: `surf list-operations` to verify name
+- **Auth errors**: Run `surf refresh` to renew an expired token, or `surf login` to re-authenticate
+- **Unknown command**: Run `surf sync` to update schema, then `surf list-operations` to verify
 - **Empty results**: Check `--help` for required params and valid enum values
+- **Stale schema**: Run `surf sync` to pull the latest API spec
 
 ## API Feedback
 
