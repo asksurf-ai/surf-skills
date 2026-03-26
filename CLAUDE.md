@@ -7,10 +7,12 @@ Agent skill and code generation tools for the Surf data API.
 ```
 surf-core/
 ├── skills/
-│   └── surf/
-│       ├── SKILL.md           # Agent skill: research, investigate, build with crypto data
-│       └── scripts/
-│           └── gen_client.py  # Typed client code generator (TypeScript / Python)
+│   ├── surf/
+│   │   ├── SKILL.md           # Agent skill: research, investigate, fetch crypto data via CLI
+│   │   └── scripts/
+│   │       └── gen_client.py  # Typed client code generator (TypeScript / Python)
+│   └── surf-app/
+│       └── SKILL.md           # Agent skill: scaffold and build crypto data web apps
 ├── CLAUDE.md
 └── README.md
 ```
@@ -29,6 +31,7 @@ surf list-operations           # verify: lists all available commands
 
 - **`skills/surf/SKILL.md`** -- Agent-discoverable skill for all surf CLI commands. Contains recipes for common research tasks, parameter conventions, command index, and credit costs.
 - **`skills/surf/scripts/gen_client.py`** -- Generates typed TypeScript or Python API clients from `surf <op> --help` output.
+- **`skills/surf-app/SKILL.md`** -- Agent-discoverable skill for building crypto data web apps. Guides agents to scaffold projects with `npx create-surf-app` and use the `@surf-ai/sdk` for data hooks and server-side API access.
 
 ## Adding New Endpoints
 
