@@ -44,6 +44,47 @@ CLAUDE.md                      ← Project rules (READ FIRST)
 
 Do not modify: `vite.config.ts`, `server.js`, `entry-client.tsx`, `entry-server.tsx`, `index.html`, `index.css`.
 
+## Workflow: Data Discovery → Code
+
+**Always start by exploring available data with the `surf` CLI**, then map directly to SDK code. Do NOT run `node -e` to test dataApi — the mapping is mechanical.
+
+### Step 1: Discover endpoints with CLI
+
+```bash
+surf sync                                    # Download API spec (first time)
+surf list-operations -g                      # List all endpoints by category
+surf market-price --help                     # See params, enums, response schema
+surf market-price --symbol BTC --time-range 7d   # Fetch sample data, verify shape
+```
+
+CLI flags use **kebab-case** (e.g. `--time-range`). `surf` is a global command (NOT `npx surf`).
+
+### Step 2: Check SDK exports before writing code
+
+**Do not guess hook or method names.** The SDK naming doesn't always follow a simple rule from CLI commands. After `npm install`, read the actual exports:
+
+**Frontend hooks:**
+```bash
+grep -o 'function use[A-Za-z]*' frontend/node_modules/@surf-ai/sdk/dist/react/index.js | sort
+```
+
+**Backend dataApi methods:**
+```bash
+node -e "const { dataApi } = require('@surf-ai/sdk/server'); for (const [domain, methods] of Object.entries(dataApi)) { if (typeof methods === 'object' && methods !== null) { for (const m of Object.keys(methods)) { console.log('dataApi.' + domain + '.' + m + '()') } } }"
+```
+
+Run this from the `backend/` directory after `npm install`.
+
+**Key rules:**
+- Use **exact** names from the output above — do not derive from CLI command names
+- Frontend: some endpoints only have `useInfinite*` hooks (paginated), not plain `use*`. Use the infinite version — access `data.pages[0]` for the first page
+- Backend: params use **snake_case** (`{ time_range: '7d' }`) matching CLI flags converted from kebab-case
+- Both: there is always a `dataApi.get(path, params)` escape hatch if a typed method doesn't exist
+
+### Step 3: Write code
+
+Write frontend and backend code using the confirmed names from Step 2. Do not run additional `node -e` calls to test individual endpoints — the SDK methods are guaranteed to work if the name exists in the export list.
+
 ## Frontend — SDK Hooks
 
 ```tsx
@@ -53,19 +94,7 @@ const { data, isLoading } = useMarketPrice({ symbol: 'BTC', time_range: '1d' })
 // data.data → items array; data.meta → pagination/credits
 ```
 
-Paginated endpoints use `useInfinite*` hooks (React Query infinite query pattern).
-
-### Naming Convention
-
-CLI command → hook → backend API:
-
-```
-market-price       →  useMarketPrice              →  dataApi.market.price()
-wallet-detail      →  useWalletDetail             →  dataApi.wallet.detail()
-social-user-posts  →  useInfiniteSocialUserPosts  →  dataApi.social.userPosts()
-```
-
-Use `surf list-operations` to discover all endpoints. Hook params match CLI flags.
+The `/proxy/*` route is built-in — hooks automatically call `/proxy/market/price` which the Express backend forwards to the data API. No manual fetch needed.
 
 ## Backend — dataApi
 
@@ -90,17 +119,3 @@ Built-in endpoints (do not recreate): `/api/health`, `/api/__sync-schema`, `/api
 ## Styling
 
 Tailwind CSS 4 + `@surf-ai/theme` (dark default). Use `shadcn/ui` components (`npx shadcn@latest add button`), `echarts-for-react` for charts, `lucide-react` for icons. All pre-installed.
-
-## Data Discovery
-
-Use the `surf` CLI (global command, NOT `npx surf`) to explore available data:
-
-```bash
-surf sync                                    # First time: download API spec
-surf list-operations -g                      # List all endpoints by category
-surf market-price --symbol BTC --time-range 7d   # Fetch data
-```
-
-**Important:** CLI flags use **kebab-case** (e.g. `--time-range`), while SDK hook params use **snake_case** (e.g. `time_range: '7d'`).
-
-Naming convention: `market-price` → `useMarketPrice()` hook → `dataApi.market.price()` server method.
