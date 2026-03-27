@@ -23,7 +23,14 @@ npx create-surf-app .
 
 Ports are read from `VITE_PORT` / `VITE_BACKEND_PORT` env vars (defaults: 5173 / 3001). Override with `--port` and `--backend-port` if needed.
 
-After scaffolding, **read the generated `CLAUDE.md`** at the project root — it has the full SDK reference, built-in endpoints, and rules for which files not to modify.
+After scaffolding, install dependencies and start dev servers:
+
+```bash
+cd backend && npm install && npm run dev &
+cd ../frontend && npm install && npm run dev
+```
+
+Then **read the generated `CLAUDE.md`** at the project root — it has the full SDK reference, built-in endpoints, and rules for which files not to modify.
 
 ## Project Structure
 
@@ -82,4 +89,18 @@ Built-in endpoints (do not recreate): `/api/health`, `/api/__sync-schema`, `/api
 
 ## Styling
 
-Tailwind CSS 4 + `@surf-ai/theme` (dark default). Use `shadcn/ui` components, `echarts-for-react` for charts, `lucide-react` for icons. All pre-installed.
+Tailwind CSS 4 + `@surf-ai/theme` (dark default). Use `shadcn/ui` components (`npx shadcn@latest add button`), `echarts-for-react` for charts, `lucide-react` for icons. All pre-installed.
+
+## Data Discovery
+
+Use the `surf` CLI (global command, NOT `npx surf`) to explore available data:
+
+```bash
+surf sync                                    # First time: download API spec
+surf list-operations -g                      # List all endpoints by category
+surf market-price --symbol BTC --time-range 7d   # Fetch data
+```
+
+**Important:** CLI flags use **kebab-case** (e.g. `--time-range`), while SDK hook params use **snake_case** (e.g. `time_range: '7d'`).
+
+Naming convention: `market-price` → `useMarketPrice()` hook → `dataApi.market.price()` server method.

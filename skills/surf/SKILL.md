@@ -14,8 +14,9 @@ tools:
 
 # Surf Data API
 
-`surf` is a CLI for querying crypto data. Use it directly for research and data
-fetching. Generate typed client code only when the user is building an app.
+`surf` is a global CLI for querying crypto data. Run it directly (NOT via `npx surf`). Use it for research and data fetching. Generate typed client code only when the user is building an app.
+
+**CLI flags use kebab-case** (e.g. `--time-range`, `--token-address`), NOT snake_case.
 
 ## Setup
 
