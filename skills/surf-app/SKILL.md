@@ -15,20 +15,29 @@ Build full-stack crypto data apps with `create-surf-app` and `@surf-ai/sdk`.
 - **This skill**: Build a web app / dashboard / visualization with crypto data.
 - **The `surf` skill**: Research, investigate, or fetch data via CLI (no web UI).
 
-## Scaffold
+## Scaffold and Start
+
+Run these commands exactly — do not modify or skip steps:
 
 ```bash
+# 1. Scaffold (ports auto-configured from environment)
 npx create-surf-app .
+
+# 2. Install dependencies (parallel for speed)
+(cd backend && npm install) & (cd frontend && npm install) && wait
+
+# 3. Read the project rules BEFORE writing any code
+cat CLAUDE.md
+
+# 4. Start backend (background) then frontend
+(cd backend && npm run dev) &
+cd frontend && npm run dev
 ```
 
-Ports are read from `VITE_PORT` / `VITE_BACKEND_PORT` env vars (defaults: 5173 / 3001). Override with `--port` and `--backend-port` if needed.
-
-After scaffolding, install dependencies and start dev servers:
-
-```bash
-cd backend && npm install && npm run dev &
-cd ../frontend && npm install && npm run dev
-```
+**IMPORTANT — do NOT:**
+- Use `npx vite` or `npx vite --port ...` — always use `npm run dev`
+- Pass `--port` flag to dev commands — port is pre-configured in `frontend/.env`
+- Restart dev servers after `npm install` — Vite auto-discovers new deps, backend uses `node --watch`
 
 Then **read the generated `CLAUDE.md`** at the project root — it has the full SDK reference, built-in endpoints, and rules for which files not to modify.
 
@@ -51,7 +60,7 @@ Do not modify: `vite.config.ts`, `server.js`, `entry-client.tsx`, `entry-server.
 
 ## Workflow: Data Discovery → Code
 
-**Always start by exploring available data with the `surf` CLI**, then map directly to SDK code. Do NOT run `node -e` to test dataApi — the mapping is mechanical.
+**Always start by exploring available data with the `surf` CLI**, then map directly to SDK code. The CLI → SDK mapping is mechanical (see Step 2). Do NOT run `node -e` to test individual endpoints.
 
 ### Step 1: Discover endpoints with CLI
 
@@ -66,25 +75,21 @@ CLI flags use **kebab-case** (e.g. `--time-range`). `surf` is a global command (
 
 ### Step 2: Check SDK exports before writing code
 
-**Do not guess hook or method names.** The SDK naming doesn't always follow a simple rule from CLI commands. After `npm install`, read the actual exports:
+**Do not guess hook or method names.** After `npm install`, read actual exports:
 
-**Frontend hooks:**
 ```bash
 grep -o 'function use[A-Za-z]*' frontend/node_modules/@surf-ai/sdk/dist/react/index.js | sort
 ```
 
-**Backend dataApi methods:**
-```bash
-node -e "const { dataApi } = require('@surf-ai/sdk/server'); for (const [domain, methods] of Object.entries(dataApi)) { if (typeof methods === 'object' && methods !== null) { for (const m of Object.keys(methods)) { console.log('dataApi.' + domain + '.' + m + '()') } } }"
-```
-
-Run this from the `backend/` directory after `npm install`.
+**Naming convention — CLI → SDK:**
+- CLI: `surf market-ranking --limit 5` → Frontend: `useMarketRanking({ limit: 5 })` or `useInfiniteMarketRanking({ limit: 5 })`
+- CLI: `surf market-ranking --limit 5` → Backend: `dataApi.market.ranking({ limit: 5 })`
+- CLI flags are **kebab-case** (`--time-range`), SDK params are **snake_case** (`{ time_range: '7d' }`)
 
 **Key rules:**
-- Use **exact** names from the output above — do not derive from CLI command names
-- Frontend: some endpoints only have `useInfinite*` hooks (paginated), not plain `use*`. Use the infinite version — access `data.pages[0]` for the first page
-- Backend: params use **snake_case** (`{ time_range: '7d' }`) matching CLI flags converted from kebab-case
-- Both: there is always a `dataApi.get(path, params)` escape hatch if a typed method doesn't exist
+- Use **exact** hook names from the `grep` output — if only `useInfinite*` exists (no plain `use*`), use the infinite version and access `data.pages[0]` for the first page
+- Backend: `const { dataApi } = require('@surf-ai/sdk/server')` — method names match CLI commands (`surf market.price` → `dataApi.market.price()`)
+- Escape hatch: `dataApi.get(path, params)` if a typed method doesn't exist
 
 ### Step 3: Write code
 
