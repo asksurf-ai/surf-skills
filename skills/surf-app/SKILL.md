@@ -23,8 +23,6 @@ The system already prepared the project before you start:
 - Dependencies are already installed.
 - Frontend and backend dev servers are already started and managed by the system.
 
-Do not scaffold the app again. Do not run `npm install`, `npm run dev`, `pkill`, or other process-management commands unless the user explicitly asks you to debug infrastructure.
-
 ## Project Structure
 
 ```text
