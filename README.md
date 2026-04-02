@@ -77,7 +77,6 @@ echo '{"sql":"SELECT project, sum(amount_usd) FROM agent.ethereum_dex_trades WHE
 |----------|------|
 | **Full Docs** | [docs.asksurf.ai](https://docs.asksurf.ai) |
 | **CLI & Skills Guide** | [docs.asksurf.ai/cli/introduction](https://docs.asksurf.ai/cli/introduction) |
-| **Chat API** | [docs.asksurf.ai/chat-completions](https://docs.asksurf.ai/chat-completions) |
 | **Data API (83 endpoints)** | [docs.asksurf.ai/data-api/overview](https://docs.asksurf.ai/data-api/overview) |
 | **Data Catalog (58 tables)** | [docs.asksurf.ai/data-catalog/overview](https://docs.asksurf.ai/data-catalog/overview) |
 
