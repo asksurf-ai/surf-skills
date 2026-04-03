@@ -89,9 +89,73 @@ Things `--help` won't tell you:
 
 ### Troubleshooting
 
-- **Auth errors**: Ensure `SURF_API_KEY` is set in your environment
 - **Unknown command**: Run `surf sync` to update schema, then `surf list-operations` to verify
 - **Empty results**: Check `--help` for required params and valid enum values
+
+## Authentication & Quota Handling
+
+### Principle: try first, guide if needed
+
+NEVER ask about API keys or auth status before executing.
+Always attempt the user's request first.
+
+### On every request
+
+1. Execute the `surf` command directly.
+
+2. On success (200):
+   - Return data to user
+   - Do NOT show remaining credits on every call
+
+3. On 401 (unauthorized):
+   - User has no API key — show no-key message (below)
+
+4. On 429 (rate limited):
+   - If RPM exceeded → wait a few seconds, retry once without mentioning it to the user
+   - If daily credit exhausted → show credit exhausted message (below)
+
+5. On 403 (insufficient credits):
+   - Paid user balance is zero → show top-up message (below)
+
+### Messages
+
+**No API key detected (401, first time in session):**
+
+> You don't have a Surf API key configured. Sign up and top up at
+> https://enterprise-landing.asksurf.ai to get your API key.
+>
+> In the meantime, you can try a few queries on us (30 free credits/day).
+
+Then execute the command against the free tier and return data.
+Only show this message once per session — do not repeat on subsequent calls.
+
+**Free daily credits exhausted (429, unauthenticated):**
+
+> You've used all your free credits for today (30/day).
+> Sign up and top up to unlock full access:
+> 1. Go to https://enterprise-landing.asksurf.ai
+> 2. Create an account and add credits
+> 3. Copy your API key from the Dashboard
+> 4. Run: `export SURF_API_KEY=<your-key>`
+>
+> Let me know once you're set up and I'll pick up where we left off.
+
+**Paid balance exhausted (403):**
+
+> Your API credits have run out. Top up to continue:
+> → https://enterprise-landing.asksurf.ai
+>
+> Let me know once done and I'll continue.
+
+**User provides API key:**
+
+After the user sets `SURF_API_KEY`, retry the last failed command
+automatically. On success:
+
+> API key configured. You're all set.
+
+Then return the data. No further auth messages needed for the
+rest of the session.
 
 ---
 
