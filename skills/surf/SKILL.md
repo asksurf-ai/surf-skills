@@ -15,7 +15,7 @@ tools:
 
 `surf` is a global CLI for querying crypto data. Run it directly (NOT via `npx surf`).
 
-**CLI flags use kebab-case** (e.g. `--time-range`, `--token-address`), NOT snake_case.
+**CLI flags use kebab-case** (e.g. `--sort-by`, `--token-address`), NOT snake_case.
 
 ## Setup
 
@@ -85,7 +85,8 @@ surf social-user --handle vitalikbuterin -o json -f body.data
 
 Things `--help` won't tell you:
 
-- **Flags are kebab-case, not snake_case.** `--sort-by`, `--time-range`, `--token-address` — NOT `--sort_by`. The CLI will reject snake_case flags with "unknown flag".
+- **Flags are kebab-case, not snake_case.** `--sort-by`, `--from`, `--token-address` — NOT `--sort_by`. The CLI will reject snake_case flags with "unknown flag".
+- **Not all endpoints share the same flags.** Some use `--time-range`, others use `--from`/`--to`, others have neither. Always run `surf <cmd> --help` before constructing a command to check the exact parameter shape.
 - **Enum values are always lowercase.** `--indicator rsi`, NOT `RSI`. Check `--help` for exact enum values — the CLI validates strictly.
 - **Never use `-q` for search.** `-q` is a global flag (not the `--q` search parameter). Always use `--q` (double dash).
 - **Chains require canonical long-form names.** `eth` → `ethereum`, `sol` → `solana`, `matic` → `polygon`, `avax` → `avalanche`, `arb` → `arbitrum`, `op` → `optimism`, `ftm` → `fantom`, `bnb` → `bsc`.
