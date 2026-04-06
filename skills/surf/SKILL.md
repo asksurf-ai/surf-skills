@@ -157,7 +157,7 @@ Only show this message once per session — do not repeat on subsequent calls.
 > 1. Go to https://enterprise-landing.asksurf.ai
 > 2. Create an account and add credits
 > 3. Copy your API key from the Dashboard
-> 4. Run: `export SURF_API_KEY=<your-key>`
+> 4. Run: `surf auth --api-key <your-key>`
 >
 > Let me know once you're set up and I'll pick up where we left off.
 
@@ -170,13 +170,21 @@ Only show this message once per session — do not repeat on subsequent calls.
 
 **User provides API key:**
 
-After the user sets `SURF_API_KEY`, retry the last failed command
-automatically. On success:
+Save it persistently with `surf auth` so they never need to set it again:
 
-> API key configured. You're all set.
+```bash
+surf auth --api-key sk-xxx   # Save API key to system keychain
+surf auth                    # Show current auth status
+surf auth --clear            # Clear saved API key
+```
 
-Then return the data. No further auth messages needed for the
-rest of the session.
+The `SURF_API_KEY` environment variable takes precedence over the saved key.
+
+Then retry the last failed command automatically. On success:
+
+> API key saved and configured. You're all set.
+
+No further auth messages needed for the rest of the session.
 
 ---
 
