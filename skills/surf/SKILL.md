@@ -1,5 +1,5 @@
 ---
-name: "Surf Skill — One Skill, All Crypto Data"
+name: surf
 description: >-
   Your AI agent's crypto brain. One skill, 83+ commands across 14 data domains —
   real-time prices, wallets, social intelligence, DeFi, on-chain SQL, prediction markets,
@@ -11,7 +11,7 @@ tools:
   - bash
 ---
 
-# Surf Data API
+# Surf — One Skill, All Crypto Data
 
 `surf` is a global CLI for querying crypto data. Run it directly (NOT via `npx surf`).
 
