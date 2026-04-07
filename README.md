@@ -14,11 +14,16 @@ Works with any agent that supports the [skills protocol](https://skills.sh) — 
 
 ### Prerequisites
 
-The Surf CLI must be installed with an API key:
+Install the Surf CLI:
 
 ```bash
 curl -fsSL https://agent.asksurf.ai/cli/releases/install.sh | sh
-export SURF_API_KEY=<your-api-key>
+```
+
+No API key required to start — you get 30 free credits daily. For full access, sign up at [agents.asksurf.ai](https://agents.asksurf.ai) and run:
+
+```bash
+surf auth --api-key <your-key>
 ```
 
 ## What It Does
@@ -42,6 +47,7 @@ The skill teaches the agent to discover endpoints, use correct parameters, and r
 |--------|-------------------|
 | **Market** | Prices, rankings, technical indicators (RSI, MACD, Bollinger), fear & greed, liquidations, futures, options, ETFs |
 | **Exchange** | Order books, candlesticks, funding rates, long/short ratios, perpetual contracts |
+| **Matching** | CEX-DEX matching, market matching |
 | **Wallet** | Balances, transfers, DeFi positions, net worth, wallet labels |
 | **Social** | Twitter/X profiles, posts, followers, mindshare, sentiment, smart followers |
 | **Token** | Holders, DEX trades, transfers, unlock schedules, tokenomics |
@@ -78,7 +84,7 @@ echo '{"sql":"SELECT project, sum(amount_usd) FROM agent.ethereum_dex_trades WHE
 | **Full Docs** | [docs.asksurf.ai](https://docs.asksurf.ai) |
 | **CLI & Skills Guide** | [docs.asksurf.ai/cli/introduction](https://docs.asksurf.ai/cli/introduction) |
 | **Data API (83 endpoints)** | [docs.asksurf.ai/data-api/overview](https://docs.asksurf.ai/data-api/overview) |
-| **Data Catalog (58 tables)** | [docs.asksurf.ai/data-catalog/overview](https://docs.asksurf.ai/data-catalog/overview) |
+| **Onchain SQL (58 tables)** | [docs.asksurf.ai/data-catalog/overview](https://docs.asksurf.ai/data-catalog/overview) |
 
 ## How It Works
 
