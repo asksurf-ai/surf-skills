@@ -17,7 +17,7 @@ surf-skills/
 
 Install the Surf CLI:
 
-Follow the installation guide at https://agents.asksurf.ai/docs/cli
+Follow the installation guide at https://agents.asksurf.ai/docs/cli/introduction
 
 ```bash
 surf list-operations           # verify: lists all available commands

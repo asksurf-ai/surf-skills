@@ -19,7 +19,7 @@ tools:
 
 ## Setup
 
-Install the Surf CLI following the guide at https://agents.asksurf.ai/docs/cli
+Install the Surf CLI following the guide at https://agents.asksurf.ai/docs/cli/introduction
 
 ```bash
 surf install                    # Upgrade to latest version (if surf is already installed)
