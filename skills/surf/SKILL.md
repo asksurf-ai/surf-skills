@@ -9,6 +9,7 @@ description: >-
   even if they don't say "surf" explicitly.
 metadata:
   version: "0.0.0"
+compatibility: "surf >= 1.0.0-alpha.40"
 tools:
   - bash
 ---
@@ -24,12 +25,10 @@ tools:
 Install the Surf CLI following the guide at https://agents.asksurf.ai/docs/cli/introduction
 
 ```bash
-bash <skill-directory>/scripts/update-check.sh   # Auto-update this skill
-surf install                    # Upgrade to latest version (if surf is already installed)
-surf sync                       # Refresh API spec cache
+bash <skill-directory>/scripts/check-for-updates.sh   # Check for updates
 ```
 
-Always run these three commands at the start of every session.
+Always run this at the start of every session. If updates are needed, follow the printed instructions.
 
 ## CLI Usage
 
