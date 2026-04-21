@@ -148,7 +148,7 @@ When the user asks for crypto data:
 3. **Check before choosing** — run `surf <candidate> --help` on the most likely endpoint(s) to read descriptions and params. Pick the one that best matches the user's intent.
 4. **Execute** — run the chosen command.
 
-**`search-*` endpoints are for fuzzy/cross-domain discovery only.** When a specific endpoint exists for the task (e.g. `project-detail`, `token-holders`, `kalshi-markets`), always prefer it over `search-project`, `search-kalshi`, etc. Use `search-*` only when you don't know the exact slug/identifier or need to find entities across domains.
+**`search-*` endpoints are for fuzzy/cross-domain discovery only.** When a specific endpoint exists for the task (e.g. `project-detail`, `token-holders`, `kalshi-markets`), always prefer it over `search-project`, `search-prediction-market`, etc. Use `search-*` only when you don't know the exact slug/identifier or need to find entities across domains. Note: `search-polymarket` and `search-kalshi` are deprecated (still work, print a warning on stderr) — use `search-prediction-market --platform polymarket|kalshi` unless you specifically need `market_slug`/`event_slug` (only the deprecated commands return those).
 
 **Non-English queries:** Translate the user's intent into English keywords before mapping to a domain.
 
@@ -237,16 +237,16 @@ If `surf list-operations \| grep <guess>` returns nothing, the command doesn't e
 
 | Command | Required flags | Notes |
 |---|---|---|
-| `polymarket-markets` | `--market-slug` | Single Yes/No outcome. Discover slugs via `search-polymarket --q <keyword>`. For multi-outcome questions use `polymarket-events --event-slug`. |
-| `polymarket-events` | `--event-slug` | Multi-outcome question with nested markets. Discover slugs via `search-polymarket`. |
-| `polymarket-prices` | `--condition-id` | Condition IDs come from `polymarket-markets` or `polymarket-events` responses. |
+| `polymarket-markets` | `--market-slug` | Single Yes/No outcome. Discover slugs via `search-polymarket --q <keyword>` — that command prints a deprecation warning on **stderr** (safe to ignore; it's the only endpoint that returns `market_slug`). `search-prediction-market --platform polymarket` only returns `condition_id`, which doesn't work here. For multi-outcome questions use `polymarket-events --event-slug`. |
+| `polymarket-events` | `--event-slug` | Multi-outcome question with nested markets. Discover slugs via `search-polymarket` (same deprecation-warning caveat as above). |
+| `polymarket-prices` | `--condition-id` | Prefer `search-prediction-market --platform polymarket --q <keyword>` to find `condition_id` (non-deprecated). Condition IDs also appear in `polymarket-markets` / `polymarket-events` responses. |
 | `social-mindshare` | `--q`, `--interval` | Time-series; bound with `--from`/`--to`. No `--time-range` here. |
 | `social-user` | `--handle` | X/Twitter handle without `@`. Not `--username`. |
 | `market-price` | `--symbol` | Uppercase ticker like `BTC`. |
 | `token-holders` | `--address`, `--chain` | Contract address, NOT a ticker. Resolve ticker→contract via a `search-*` command first. |
 | `token-dex-trades` | `--address` | Same — contract address, 0x-hex (EVM only). |
 | `search-project` | `--q` | Free-text. Returns project candidates for downstream `--id` lookups. |
-| `kalshi-prices` | `--ticker` | Kalshi market ticker (e.g. `KXBTC2026250-...`). Find via `search-kalshi`. |
+| `kalshi-prices` | `--ticker` | Kalshi market ticker (e.g. `KXBTC2026250-...`). Find via `search-prediction-market --platform kalshi --q <keyword>` — it returns `market_ticker` directly. (`search-kalshi` also works but prints a deprecation warning.) |
 
 ### On-Chain SQL
 
