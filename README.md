@@ -2,7 +2,7 @@
 
 Give your AI coding agent direct access to crypto market data, wallet intelligence, social analytics, prediction markets, and on-chain data — across 40+ blockchains and 200+ data sources.
 
-> **[Full Documentation →](https://docs.asksurf.ai)**
+> **[Full Documentation →](https://agents.asksurf.ai/docs)**
 
 ## Install
 
@@ -77,10 +77,10 @@ echo '{"sql":"SELECT project, sum(amount_usd) FROM agent.ethereum_dex_trades WHE
 
 | Resource | Link |
 |----------|------|
-| **Full Docs** | [docs.asksurf.ai](https://docs.asksurf.ai) |
-| **CLI & Skills Guide** | [docs.asksurf.ai/cli/introduction](https://docs.asksurf.ai/cli/introduction) |
-| **Data API (83 endpoints)** | [docs.asksurf.ai/data-api/overview](https://docs.asksurf.ai/data-api/overview) |
-| **Onchain SQL (58 tables)** | [docs.asksurf.ai/data-catalog/overview](https://docs.asksurf.ai/data-catalog/overview) |
+| **Full Docs** | [agents.asksurf.ai/docs](https://agents.asksurf.ai/docs) |
+| **CLI & Skills Guide** | [agents.asksurf.ai/docs/cli/introduction](https://agents.asksurf.ai/docs/cli/introduction) |
+| **Data API (83 endpoints)** | [agents.asksurf.ai/docs/data-api/overview](https://agents.asksurf.ai/docs/data-api/overview) |
+| **Onchain SQL (58 tables)** | [agents.asksurf.ai/docs/data-catalog/overview](https://agents.asksurf.ai/docs/data-catalog/overview) |
 
 ## How It Works
 
