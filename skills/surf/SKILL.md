@@ -88,7 +88,7 @@ to see the actual surface and `surf <cmd> --help` for exact params.
 | Token holders, DEX trades, unlock schedules | `surf token-*` |
 | DeFi TVL, protocol metrics | `surf project-*` |
 | Twitter profiles, mindshare, sentiment | `surf social-*` |
-| Polymarket / Kalshi odds, markets, volume | `surf polymarket-*`, `surf kalshi-*` |
+| Polymarket / Kalshi odds, markets, volume (brand-specific; prefer over generic `search-prediction-market` when user names the venue) | `surf polymarket-*`, `surf kalshi-*` |
 | On-chain SQL, gas, transaction lookup | `surf onchain-*` |
 | News, cross-domain search | `surf news-*`, `surf search-*` |
 | Fund profiles, VC portfolios | `surf fund-*` |
@@ -174,9 +174,9 @@ A partial map of common domains — **not every command follows these prefixes, 
 | VC funds, portfolios, rankings | `fund` |
 | Transaction lookup, gas prices, on-chain queries | `onchain` |
 | CEX-DEX matching, market matching | `matching` |
-| Kalshi binary markets | `kalshi` |
-| Polymarket prediction markets | `polymarket` |
-| Cross-platform prediction metrics | `prediction-market` |
+| Kalshi binary markets (use when user names "Kalshi" — markets, events, trades, prices, volumes, open-interest) | `kalshi` |
+| Polymarket prediction markets (use when user names "Polymarket") | `polymarket` |
+| Cross-platform prediction metrics — only when no venue is named | `prediction-market` |
 | News feed and articles | `news` |
 | Cross-domain entity search | `search` |
 | Fetch/parse any URL | `web-fetch` |
@@ -193,6 +193,7 @@ Things `--help` won't tell you:
 - **POST endpoints (`onchain-sql`, `onchain-structured-query`) take JSON on stdin.** Pipe JSON: `echo '{"sql":"SELECT ..."}' | surf onchain-sql`. See "On-Chain SQL" section below for required steps before writing queries.
 - **`market-onchain-indicator` uses `--metric`, not `--indicator`.** The flag is `--metric nupl`, not `--indicator nupl`. Also, metrics like `mvrv`, `sopr`, `nupl`, `puell-multiple` only support `--symbol BTC` — other symbols return empty data.
 - **`news-feed --project X` is a tag filter, not a topic search.** It only returns articles that the indexer tagged against that specific `project_id`. Articles about an event often get tagged to a different project (or none) and get silently filtered out. For queries centered on an **event, deal, incident, exchange action, regulator move, or person** (e.g. "Bybit-led funding round", "CHIP listed on Coinbase", "North Korea DeFi attacks", "Matt Hougan interview"), use **`search-news --q "<keywords>"`** — it's full-text search across all 17 sources (coindesk, cointelegraph, theblock, decrypt, dlnews, etc.) and won't drop off-tag articles. Reserve `news-feed --project` for queries about a **named crypto project** ("Uniswap latest news"). If `news-feed --project` returns empty, fall back to `search-news` before concluding no coverage exists.
+- **Prediction-market venue routing — brand name wins over generic search.** When the user explicitly names **Kalshi** or **Polymarket**, route to the venue-specific family (`kalshi-*` / `polymarket-*`) — NOT the cross-venue `search-prediction-market` or `prediction-market-*` endpoints. `search-prediction-market` is for unbranded queries that span both venues; the brand-specific endpoints carry the full per-venue surface (markets, events, trades, prices, volumes, open-interest, orderbooks) and return richer data. Pick from `surf list-operations | grep kalshi` (or `| grep polymarket`) and then `--help`. Quick map: "Kalshi markets / events / contracts" → `kalshi-markets` (or `kalshi-events`); "Kalshi trading volume / volumes" → `kalshi-volumes`; same shape for Polymarket. Only fall back to `search-prediction-market` / `prediction-market-*` when the user didn't name a venue or explicitly asked for a cross-venue comparison.
 - **Ignore `--rsh-*` internal flags in `--help` output.** Only the command-specific flags matter.
 
 ### On-Chain SQL
