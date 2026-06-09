@@ -89,6 +89,7 @@ to see the actual surface and `surf <cmd> --help` for exact params.
 | DeFi TVL, protocol metrics | `surf project-*` |
 | Twitter profiles, mindshare, sentiment | `surf social-*` |
 | Polymarket / Kalshi odds, markets, volume | `surf polymarket-*`, `surf kalshi-*` |
+| Hyperliquid traders, positions, account value, fills | `surf hyperliquid-*` |
 | On-chain SQL, gas, transaction lookup | `surf onchain-*` |
 | News, cross-domain search | `surf news-*`, `surf search-*` |
 | Fund profiles, VC portfolios | `surf fund-*` |
@@ -171,6 +172,7 @@ A partial map of common domains — **not every command follows these prefixes, 
 | Token holders, DEX trades, unlocks | `token` |
 | Project info, DeFi TVL, protocol metrics | `project` |
 | Order books, candlesticks, funding rates | `exchange` |
+| Hyperliquid perp/spot positions, account value, trader leaderboard, fills | `hyperliquid` |
 | VC funds, portfolios, rankings | `fund` |
 | Transaction lookup, gas prices, on-chain queries | `onchain` |
 | CEX-DEX matching, market matching | `matching` |
