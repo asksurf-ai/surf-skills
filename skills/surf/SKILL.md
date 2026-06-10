@@ -8,7 +8,7 @@ description: >-
   to investigate on-chain activity, or is building something that consumes crypto data —
   even if they don't say "surf" explicitly.
 metadata:
-  version: "0.0.3"
+  version: "0.0.4"
 tools:
   - bash
 ---
@@ -194,6 +194,7 @@ Things `--help` won't tell you:
 - **Chains require canonical long-form names.** `eth` → `ethereum`, `sol` → `solana`, `matic` → `polygon`, `avax` → `avalanche`, `arb` → `arbitrum`, `op` → `optimism`, `ftm` → `fantom`, `bnb` → `bsc`.
 - **POST endpoints (`onchain-sql`, `onchain-structured-query`) take JSON on stdin.** Pipe JSON: `echo '{"sql":"SELECT ..."}' | surf onchain-sql`. See "On-Chain SQL" section below for required steps before writing queries.
 - **`market-onchain-indicator` uses `--metric`, not `--indicator`.** The flag is `--metric nupl`, not `--indicator nupl`. Also, metrics like `mvrv`, `sopr`, `nupl`, `puell-multiple` only support `--symbol BTC` — other symbols return empty data.
+- **`hyperliquid-fills`: always use `--limit 100` when reconstructing trade history or PnL.** Paging is time-only: request a page, then pass the oldest `time_ms` you received as `--to-ms` for the next page, de-duplicating on `fill_id`. The boundary cannot split fills that share a millisecond — if more fills than your page size land on a single `time_ms`, the overflow is silently lost between pages. The default `--limit 20` makes this likely on busy wallets, so max it out, and treat a page whose rows all share one `time_ms` as possibly incomplete.
 - **`news-feed --project X` is a tag filter, not a topic search.** It only returns articles that the indexer tagged against that specific `project_id`. Articles about an event often get tagged to a different project (or none) and get silently filtered out. For queries centered on an **event, deal, incident, exchange action, regulator move, or person** (e.g. "Bybit-led funding round", "CHIP listed on Coinbase", "North Korea DeFi attacks", "Matt Hougan interview"), use **`search-news --q "<keywords>"`** — it's full-text search across all 17 sources (coindesk, cointelegraph, theblock, decrypt, dlnews, etc.) and won't drop off-tag articles. Reserve `news-feed --project` for queries about a **named crypto project** ("Uniswap latest news"). If `news-feed --project` returns empty, fall back to `search-news` before concluding no coverage exists.
 - **Ignore `--rsh-*` internal flags in `--help` output.** Only the command-specific flags matter.
 
@@ -211,7 +212,9 @@ Essential rules (even if you skip the catalog):
 
 - **Always `agent.` prefix** — `agent.ethereum_dex_trades`, NOT `ethereum_dex_trades`
 - **Read-only** — only `SELECT` / `WITH`; 30s timeout; 10K row limit; 5B row scan limit
-- **Always filter on `block_date`** — it's the partition key; queries without it will timeout on large tables
+- **Always filter on `block_date`** — it's the partition key. Queries on large tables (`*_transfers`, `*_dex_trades`, `*_traces`, `*_event_logs`, `*_transactions`) are rejected unless they include a `block_date` lower bound (`>=`, `>`, `=`, `BETWEEN`, or `IN`). Upper-bound-only (`<`/`<=`), `IS NOT NULL`, or a bare `block_date` mention don't count.
+- **Max 365-day window on large tables** — a `block_date` window wider than 365 days is rejected up front: `queries on large tables (…) are limited to a 365-day block_date window — narrow the range (e.g. block_date >= today() - 30)`. For longer history, run several ≤365-day queries and merge the results yourself.
+- **JOINs and UNIONs: every large table needs its OWN `block_date` filter** — a filter on one table never covers another. Qualify each one (`a.block_date >= today() - 30 AND b.block_date >= today() - 30`); the same applies independently to each UNION branch and each subquery. The rejection reads: `large tables (…) each require their OWN block_date lower-bound filter`.
 
 ### Troubleshooting
 
