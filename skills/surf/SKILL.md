@@ -8,7 +8,7 @@ description: >-
   to investigate on-chain activity, or is building something that consumes crypto data —
   even if they don't say "surf" explicitly.
 metadata:
-  version: "0.0.4"
+  version: "0.0.5"
 tools:
   - bash
 ---
@@ -194,7 +194,7 @@ Things `--help` won't tell you:
 - **Chains require canonical long-form names.** `eth` → `ethereum`, `sol` → `solana`, `matic` → `polygon`, `avax` → `avalanche`, `arb` → `arbitrum`, `op` → `optimism`, `ftm` → `fantom`, `bnb` → `bsc`.
 - **POST endpoints (`onchain-sql`, `onchain-structured-query`) take JSON on stdin.** Pipe JSON: `echo '{"sql":"SELECT ..."}' | surf onchain-sql`. See "On-Chain SQL" section below for required steps before writing queries.
 - **`market-onchain-indicator` uses `--metric`, not `--indicator`.** The flag is `--metric nupl`, not `--indicator nupl`. Also, metrics like `mvrv`, `sopr`, `nupl`, `puell-multiple` only support `--symbol BTC` — other symbols return empty data.
-- **`hyperliquid-fills`: always use `--limit 100` when reconstructing trade history or PnL.** Paging is time-only: request a page, then pass the oldest `time_ms` you received as `--to-ms` for the next page, de-duplicating on `fill_id`. The boundary cannot split fills that share a millisecond — if more fills than your page size land on a single `time_ms`, the overflow is silently lost between pages. The default `--limit 20` makes this likely on busy wallets, so max it out, and treat a page whose rows all share one `time_ms` as possibly incomplete.
+- **`hyperliquid-fills`: for full trade history or PnL reconstruction, use `--order asc --from <start-date>` and follow `meta.next_cursor`.** The ascending walk returns every fill in the window with no result cap — keep passing the returned `meta.next_cursor` back as `--cursor` (only `--symbol`/`--limit` may accompany it) until `next_cursor` comes back empty. With `--symbol`, a page can be short or even empty while the cursor still advances — keep walking; `meta.empty_reason` explains. The default newest-first mode reaches only a recent window (roughly the last 2000 fills): right for "latest trades" views, silently incomplete for accounting — never sum PnL from it on an active wallet.
 - **`news-feed --project X` is a tag filter, not a topic search.** It only returns articles that the indexer tagged against that specific `project_id`. Articles about an event often get tagged to a different project (or none) and get silently filtered out. For queries centered on an **event, deal, incident, exchange action, regulator move, or person** (e.g. "Bybit-led funding round", "CHIP listed on Coinbase", "North Korea DeFi attacks", "Matt Hougan interview"), use **`search-news --q "<keywords>"`** — it's full-text search across all 17 sources (coindesk, cointelegraph, theblock, decrypt, dlnews, etc.) and won't drop off-tag articles. Reserve `news-feed --project` for queries about a **named crypto project** ("Uniswap latest news"). If `news-feed --project` returns empty, fall back to `search-news` before concluding no coverage exists.
 - **Ignore `--rsh-*` internal flags in `--help` output.** Only the command-specific flags matter.
 
