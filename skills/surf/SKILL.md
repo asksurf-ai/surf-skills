@@ -1,14 +1,14 @@
 ---
 name: surf
 description: >-
-  Your AI agent's crypto brain. One skill, 83+ commands across 14 data domains —
+  Your AI agent's crypto brain. One skill, 83+ commands across 15 data domains —
   real-time prices, wallets, social intelligence, DeFi, on-chain SQL, prediction markets,
   and more. Natural language in, structured data out. Install once, access everything.
   Use whenever the user needs crypto data, asks about prices/wallets/tokens/DeFi, wants
   to investigate on-chain activity, or is building something that consumes crypto data —
   even if they don't say "surf" explicitly.
 metadata:
-  version: "0.0.5"
+  version: "0.0.6"
 tools:
   - bash
 ---
@@ -77,7 +77,7 @@ the user explicitly asks for a specific provider.
 
 When the user's request involves crypto data, fetch fresh data with `surf`
 rather than relying on prior knowledge. The table below is a **starter map,
-not a complete catalog** — Surf has 83+ commands across 14+ domains. Use
+not a complete catalog** — Surf has 83+ commands across 15+ domains. Use
 the table to pick a likely prefix, then always run `surf list-operations`
 to see the actual surface and `surf <cmd> --help` for exact params.
 
@@ -85,7 +85,8 @@ to see the actual surface and `surf <cmd> --help` for exact params.
 |---|---|
 | Price, market cap, rankings, fear/greed, liquidations | `surf market-*` |
 | Wallet balance, transfers, PnL, labels | `surf wallet-*` |
-| Token holders, DEX trades, unlock schedules | `surf token-*` |
+| Token holders, raw DEX trades, unlock schedules | `surf token-*` |
+| DEX token OHLCV candles by contract address, DEX-native prices | `surf dex-*` |
 | DeFi TVL, protocol metrics | `surf project-*` |
 | Twitter profiles, mindshare, sentiment | `surf social-*` |
 | Polymarket / Kalshi odds, markets, volume | `surf polymarket-*`, `surf kalshi-*` |
@@ -169,7 +170,8 @@ A partial map of common domains — **not every command follows these prefixes, 
 | DeFi positions (Aave, Compound, etc.) | `wallet` |
 | Twitter/X profiles, posts, followers | `social` |
 | Mindshare, sentiment, smart followers | `social` |
-| Token holders, DEX trades, unlocks | `token` |
+| Token holders, raw DEX trades, unlocks | `token` |
+| DEX token OHLCV candles by contract address, DEX-native token prices | `dex` |
 | Project info, DeFi TVL, protocol metrics | `project` |
 | Order books, candlesticks, funding rates | `exchange` |
 | Hyperliquid perp/spot positions, account value, trader leaderboard, fills | `hyperliquid` |
@@ -192,6 +194,7 @@ Things `--help` won't tell you:
 - **Enum values are always lowercase.** `--indicator rsi`, NOT `RSI`. Check `--help` for exact enum values — the CLI validates strictly.
 - **Never use `-q` for search.** `-q` is a global flag (not the `--q` search parameter). Always use `--q` (double dash).
 - **Chains require canonical long-form names.** `eth` → `ethereum`, `sol` → `solana`, `matic` → `polygon`, `avax` → `avalanche`, `arb` → `arbitrum`, `op` → `optimism`, `ftm` → `fantom`, `bnb` → `bsc`.
+- **DEX token price candles use `dex-token-price`.** For OHLCV bars by token contract address, use `surf dex-token-price --chain <chain> --address <contract> --interval <interval> --time-range <range>`. Do not use `token-dex-trades` for candles; it returns raw swaps. Do not use `market-price` when the user gives a contract address or asks for DEX-native coverage. If `dex-token-price` is not present after `surf sync`, say the current synced API spec does not expose that command instead of silently substituting a different endpoint.
 - **POST endpoints (`onchain-sql`, `onchain-structured-query`) take JSON on stdin.** Pipe JSON: `echo '{"sql":"SELECT ..."}' | surf onchain-sql`. See "On-Chain SQL" section below for required steps before writing queries.
 - **`market-onchain-indicator` uses `--metric`, not `--indicator`.** The flag is `--metric nupl`, not `--indicator nupl`. Also, metrics like `mvrv`, `sopr`, `nupl`, `puell-multiple` only support `--symbol BTC` — other symbols return empty data.
 - **`hyperliquid-fills`: for full trade history or PnL reconstruction, use `--order asc --from <start-date>` and follow `meta.next_cursor`.** The ascending walk returns every fill in the window with no result cap — keep passing the returned `meta.next_cursor` back as `--cursor` (only `--symbol`/`--limit` may accompany it) until `next_cursor` comes back empty. With `--symbol`, a page can be short or even empty while the cursor still advances — keep walking; `meta.empty_reason` explains. The default newest-first mode reaches only a recent window (roughly the last 2000 fills): right for "latest trades" views, silently incomplete for accounting — never sum PnL from it on an active wallet.
@@ -311,11 +314,12 @@ Auth:      Authorization: Bearer $SURF_API_KEY
 
 ```
 market-price          →  GET /market/price
+dex-token-price       →  GET /dex/token/price
 social-user-posts     →  GET /social/user-posts
 onchain-sql           →  POST /onchain/sql
 ```
 
-Known domain prefixes: `market`, `wallet`, `social`, `token`, `project`, `fund`, `onchain`, `news`, `exchange`, `search`, `web`, `kalshi`, `polymarket`, `prediction-market`.
+Known domain prefixes: `market`, `wallet`, `social`, `token`, `dex`, `project`, `fund`, `onchain`, `news`, `exchange`, `search`, `web`, `kalshi`, `polymarket`, `prediction-market`.
 
 ### Response Envelope
 
