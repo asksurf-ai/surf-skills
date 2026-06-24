@@ -34,6 +34,7 @@ Once installed, your agent can fetch live crypto data just by you asking for it 
 - "Find trending crypto projects on Twitter"
 - "What's the TVL of Uniswap on Arbitrum?"
 - "Show me BTC funding rates across exchanges"
+- "Get Bithumb BTC/KRW 5-minute candles"
 
 The skill teaches the agent to discover endpoints, use correct parameters, and return structured data — automatically.
 
@@ -42,7 +43,7 @@ The skill teaches the agent to discover endpoints, use correct parameters, and r
 | Domain | What You Can Query |
 |--------|-------------------|
 | **Market** | Prices, rankings, technical indicators (RSI, MACD, Bollinger), fear & greed, liquidations, futures, options, ETFs |
-| **Exchange** | Order books, candlesticks, funding rates, long/short ratios, perpetual contracts |
+| **Exchange** | Order books, candlesticks, funding rates, long/short ratios, perpetual contracts, Asian CEX market coverage |
 | **Matching** | CEX-DEX matching, market matching |
 | **Wallet** | Balances, transfers, DeFi positions, net worth, wallet labels |
 | **Social** | Twitter/X profiles, posts, followers, mindshare, sentiment, smart followers |
