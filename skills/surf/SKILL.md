@@ -173,7 +173,7 @@ A partial map of common domains — **not every command follows these prefixes, 
 | Token holders, raw DEX trades, unlocks | `token` |
 | DEX token OHLCV candles by contract address, DEX-native token prices | `dex` |
 | Project info, DeFi TVL, protocol metrics | `project` |
-| Order books, candlesticks, funding rates | `exchange` |
+| Exchange order books, candlesticks, funding rates, Asian CEX market coverage | `exchange` |
 | Hyperliquid perp/spot positions, account value, trader leaderboard, fills | `hyperliquid` |
 | VC funds, portfolios, rankings | `fund` |
 | Transaction lookup, gas prices, on-chain queries | `onchain` |
@@ -184,6 +184,30 @@ A partial map of common domains — **not every command follows these prefixes, 
 | News feed and articles | `news` |
 | Cross-domain entity search | `search` |
 | Fetch/parse any URL | `web-fetch` |
+
+### Exchange Market Data
+
+For Asian CEX spot market data, prefer the newer coverage/candles flow when
+the commands are present after `surf sync`:
+
+```bash
+surf list-operations | grep exchange
+surf exchange-coverage --help
+surf exchange-candles --help
+```
+
+Use `exchange-coverage` first to discover covered markets and their exact
+`pair` values. Then call `exchange-candles` with the returned `pair`.
+
+```bash
+surf exchange-coverage --exchange bithumb --limit 20 --json
+surf exchange-candles --exchange bithumb --pair BTC/KRW --interval 5m --limit 100 --json
+```
+
+Supported exchange and interval values are shown in `--help`; copy them exactly.
+If `exchange-coverage` or `exchange-candles` is missing after `surf sync`, say
+the current synced API spec does not expose the newer exchange coverage/candles
+commands instead of falling back silently to older exchange endpoints.
 
 ### Gotchas
 
