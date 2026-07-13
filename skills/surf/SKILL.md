@@ -8,7 +8,7 @@ description: >-
   to investigate on-chain activity, or is building something that consumes crypto data —
   even if they don't say "surf" explicitly.
 metadata:
-  version: "0.0.6"
+  version: "0.0.7"
 tools:
   - bash
 ---
@@ -86,6 +86,7 @@ to see the actual surface and `surf <cmd> --help` for exact params.
 | Price, market cap, rankings, fear/greed, liquidations | `surf market-*` |
 | Wallet balance, transfers, PnL, labels | `surf wallet-*` |
 | Token holders, raw DEX trades, unlock schedules | `surf token-*` |
+| Exact token ticker to contract address candidates | `surf search-token` |
 | DEX token OHLCV candles by contract address, DEX-native prices | `surf dex-*` |
 | DeFi TVL, protocol metrics | `surf project-*` |
 | Twitter profiles, mindshare, sentiment | `surf social-*` |
@@ -94,6 +95,7 @@ to see the actual surface and `surf <cmd> --help` for exact params.
 | On-chain SQL, gas, transaction lookup | `surf onchain-*` |
 | News, cross-domain search | `surf news-*`, `surf search-*` |
 | Fund profiles, VC portfolios | `surf fund-*` |
+| Fundraising rounds, investments, ICOs, token sales | `surf search-fundraising` |
 
 Crypto data changes in real time — always fetch fresh.
 ```
@@ -154,6 +156,8 @@ Use `search-<domain>` only when:
 - `<domain>-detail --help` shows no name/fuzzy flag AND you don't have the exact id, OR
 - the query spans multiple entity types / is genuinely ambiguous.
 
+**Exception:** `search-token` is not a fuzzy or cross-domain search command. It only resolves an exact ticker symbol to ranked contract candidates. See Token Symbol Resolution below.
+
 **Non-English queries:** Translate the user's intent into English keywords before mapping to a domain.
 
 ### Domain Guide
@@ -171,6 +175,7 @@ A partial map of common domains — **not every command follows these prefixes, 
 | Twitter/X profiles, posts, followers | `social` |
 | Mindshare, sentiment, smart followers | `social` |
 | Token holders, raw DEX trades, unlocks | `token` |
+| Exact token ticker to contract address candidates | `search-token` |
 | DEX token OHLCV candles by contract address, DEX-native token prices | `dex` |
 | Project info, DeFi TVL, protocol metrics | `project` |
 | Order books, candlesticks, funding rates | `exchange` |
@@ -182,8 +187,33 @@ A partial map of common domains — **not every command follows these prefixes, 
 | Polymarket prediction markets | `polymarket` |
 | Cross-platform prediction metrics | `prediction-market` |
 | News feed and articles | `news` |
+| Fundraising rounds, investments, ICOs, token sales | `fundraising` |
 | Cross-domain entity search | `search` |
 | Fetch/parse any URL | `web-fetch` |
+
+### Token Symbol Resolution
+
+Use `search-token` when the user provides an exact token ticker and needs likely `(chain, address)` contract candidates before calling a token or DEX endpoint. The ticker match is case-insensitive, but it is exact: `USDC` and `PEPE` work; a fuzzy token name, contract address, or trading pair such as `BTC/USDT` does not.
+
+- For a fuzzy project or token name, use `project-detail --q` or `search-project`.
+- If the user already provided a contract address, skip `search-token` and pass the address directly to the target endpoint.
+- For a trading pair, use the relevant `exchange-*` command.
+- Candidates are ranked by Surf registry, listing, and market signals. `volume_usd` is a reserved compatibility field that always returns `0`; never use it to rank or validate candidates.
+- Treat `chain` and `address` as a pair, and only pass them to endpoints that support the returned chain.
+
+```bash
+surf search-token --q USDC --chain ethereum
+surf search-token --q PEPE
+```
+
+### Fundraising Search
+
+Use `search-fundraising` for fundraising events and timelines: funding rounds, investments, raises, ICOs, and token sales. Omit `--q` for the latest timeline; add `--q` to search by project name, alias, symbol, title, or summary. It supports time bounds, source and importance filters, localization, sorting, and offset pagination. Always check `--help` before constructing the call.
+
+```bash
+surf search-fundraising --limit 20
+surf search-fundraising --q "Elliptic" --from 2026-07-01 --sort-by relevance --lang zh
+```
 
 ### Gotchas
 
@@ -194,11 +224,12 @@ Things `--help` won't tell you:
 - **Enum values are always lowercase.** `--indicator rsi`, NOT `RSI`. Check `--help` for exact enum values — the CLI validates strictly.
 - **Never use `-q` for search.** `-q` is a global flag (not the `--q` search parameter). Always use `--q` (double dash).
 - **Chains require canonical long-form names.** `eth` → `ethereum`, `sol` → `solana`, `matic` → `polygon`, `avax` → `avalanche`, `arb` → `arbitrum`, `op` → `optimism`, `ftm` → `fantom`, `bnb` → `bsc`.
-- **DEX token price candles use `dex-token-price`.** For OHLCV bars by token contract address, use `surf dex-token-price --chain <chain> --address <contract> --interval <interval> --time-range <range>`. Do not use `token-dex-trades` for candles; it returns raw swaps. Do not use `market-price` when the user gives a contract address or asks for DEX-native coverage. If `dex-token-price` is not present after `surf sync`, say the current synced API spec does not expose that command instead of silently substituting a different endpoint.
+- **DEX token price candles use `dex-token-price`.** For OHLCV bars by token contract address, use `surf dex-token-price --chain <chain> --address <contract> --interval <interval> --time-range <range>`. If the user provides only an exact ticker, resolve ranked `(chain, address)` candidates with `search-token` first; never rank those candidates by `volume_usd`, which always returns `0`. Do not use `token-dex-trades` for candles; it returns raw swaps. Do not use `market-price` when the user gives a contract address or asks for DEX-native coverage. If `dex-token-price` is not present after `surf sync`, say the current synced API spec does not expose that command instead of silently substituting a different endpoint.
 - **POST endpoints (`onchain-sql`, `onchain-structured-query`) take JSON on stdin.** Pipe JSON: `echo '{"sql":"SELECT ..."}' | surf onchain-sql`. See "On-Chain SQL" section below for required steps before writing queries.
 - **`market-onchain-indicator` uses `--metric`, not `--indicator`.** The flag is `--metric nupl`, not `--indicator nupl`. Also, metrics like `mvrv`, `sopr`, `nupl`, `puell-multiple` only support `--symbol BTC` — other symbols return empty data.
 - **`hyperliquid-fills`: for full trade history or PnL reconstruction, use `--order asc --from <start-date>` and follow `meta.next_cursor`.** The ascending walk returns every fill in the window with no result cap — keep passing the returned `meta.next_cursor` back as `--cursor` (only `--symbol`/`--limit` may accompany it) until `next_cursor` comes back empty. With `--symbol`, a page can be short or even empty while the cursor still advances — keep walking; `meta.empty_reason` explains. The default newest-first mode reaches only a recent window (roughly the last 2000 fills): right for "latest trades" views, silently incomplete for accounting — never sum PnL from it on an active wallet.
-- **`news-feed --project X` is a tag filter, not a topic search.** It only returns articles that the indexer tagged against that specific `project_id`. Articles about an event often get tagged to a different project (or none) and get silently filtered out. For queries centered on an **event, deal, incident, exchange action, regulator move, or person** (e.g. "Bybit-led funding round", "CHIP listed on Coinbase", "North Korea DeFi attacks", "Matt Hougan interview"), use **`search-news --q "<keywords>"`** — it's full-text search across all 17 sources (coindesk, cointelegraph, theblock, decrypt, dlnews, etc.) and won't drop off-tag articles. Reserve `news-feed --project` for queries about a **named crypto project** ("Uniswap latest news"). If `news-feed --project` returns empty, fall back to `search-news` before concluding no coverage exists.
+- **`search-fund` and `search-fundraising` answer different questions.** Use `search-fund` for VC or fund profiles and portfolios. Use `search-fundraising` for project fundraising events, investments, raises, ICOs, token sales, and chronological fundraising timelines.
+- **`news-feed --project X` is a tag filter, not a topic search.** It only returns articles that the indexer tagged against that specific `project_id`. Articles about an event often get tagged to a different project (or none) and get silently filtered out. For fundraising deals (e.g. "Bybit-led funding round"), use **`search-fundraising`** first. For other queries centered on an **event, incident, exchange action, regulator move, or person** (e.g. "CHIP listed on Coinbase", "North Korea DeFi attacks", "Matt Hougan interview"), use **`search-news --q "<keywords>"`**. Use `search-news` instead of `search-fundraising` when the user specifically wants broader article coverage rather than the normalized fundraising timeline. Reserve `news-feed --project` for queries about a **named crypto project** ("Uniswap latest news"). If `news-feed --project` returns empty, fall back to the appropriate search command before concluding no coverage exists.
 - **Ignore `--rsh-*` internal flags in `--help` output.** Only the command-specific flags matter.
 
 ### On-Chain SQL
