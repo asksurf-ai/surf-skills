@@ -8,7 +8,7 @@ description: >-
   to investigate on-chain activity, or is building something that consumes crypto data —
   even if they don't say "surf" explicitly.
 metadata:
-  version: "0.0.7"
+  version: "0.0.8"
 tools:
   - bash
 ---
@@ -249,6 +249,42 @@ Essential rules (even if you skip the catalog):
 - **Always filter on `block_date`** — it's the partition key. Queries on large tables (`*_transfers`, `*_dex_trades`, `*_traces`, `*_event_logs`, `*_transactions`) are rejected unless they include a `block_date` lower bound (`>=`, `>`, `=`, `BETWEEN`, or `IN`). Upper-bound-only (`<`/`<=`), `IS NOT NULL`, or a bare `block_date` mention don't count.
 - **Max 365-day window on large tables** — a `block_date` window wider than 365 days is rejected up front: `queries on large tables (…) are limited to a 365-day block_date window — narrow the range (e.g. block_date >= today() - 30)`. For longer history, run several ≤365-day queries and merge the results yourself.
 - **JOINs and UNIONs: every large table needs its OWN `block_date` filter** — a filter on one table never covers another. Qualify each one (`a.block_date >= today() - 30 AND b.block_date >= today() - 30`); the same applies independently to each UNION branch and each subquery. The rejection reads: `large tables (…) each require their OWN block_date lower-bound filter`.
+
+#### Robinhood Chain
+
+Start Robinhood analysis from the catalog, then check the coverage contract before querying a large fact view:
+
+```bash
+surf catalog search robinhood
+surf catalog show robinhood_dataset_coverage
+surf catalog show robinhood_dex_trades
+```
+
+The six analyst-facing views are:
+
+| View | Use |
+|---|---|
+| `agent.robinhood_dataset_coverage` | Authoritative historical bounds and semantic limitations |
+| `agent.robinhood_dex_trades` | Mapped Uniswap V2/V3/V4 swaps |
+| `agent.robinhood_transfers` | ERC-20/721/1155 transfer events |
+| `agent.robinhood_token_metadata` | Current token metadata snapshot |
+| `agent.robinhood_prices_hour` | Deduplicated hourly prices for supported tokens |
+| `agent.robinhood_chain_daily` | Complete-UTC-day chain activity |
+
+Important semantics:
+
+- **Do not default to a July 1, 2026 cutoff.** That is Robinhood Chain's public-mainnet launch date, not the start of its canonical mainnet history. Keep pre-launch rows unless the user explicitly asks for public-period activity.
+- For public-period analysis, add `block_date >= toDate('2026-07-01')` to trades/transfers or `date >= toDate('2026-07-01')` to daily metrics.
+- `robinhood_dex_trades` is mapped-pool coverage, not every possible contract or protocol.
+- `robinhood_transfers` is event-only and excludes native/internal trace-derived transfers.
+- `robinhood_prices_hour` covers supported tokens only; it is not a complete token-price universe.
+- Token metadata is a current snapshot. Use `robinhood_dataset_coverage` for audited historical bounds, not event-row minima.
+
+Example:
+
+```bash
+echo '{"sql":"SELECT dataset, coverage_state, complete_through_block, raw_live_tip, internal_gaps, semantic_coverage FROM agent.robinhood_dataset_coverage ORDER BY dataset"}' | surf onchain-sql
+```
 
 ### Troubleshooting
 
