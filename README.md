@@ -71,6 +71,10 @@ surf social-user --handle vitalikbuterin -o json -f body.data
 
 # On-chain SQL
 echo '{"sql":"SELECT project, sum(amount_usd) FROM agent.ethereum_dex_trades WHERE block_date = today() - 1 GROUP BY project ORDER BY 2 DESC LIMIT 10"}' | surf onchain-sql
+
+# Robinhood Chain catalog and historical coverage
+surf catalog search robinhood
+echo '{"sql":"SELECT dataset, coverage_state, complete_through_block, semantic_coverage FROM agent.robinhood_dataset_coverage ORDER BY dataset"}' | surf onchain-sql
 ```
 
 ## Documentation
@@ -80,7 +84,7 @@ echo '{"sql":"SELECT project, sum(amount_usd) FROM agent.ethereum_dex_trades WHE
 | **Full Docs** | [agents.asksurf.ai/docs](https://agents.asksurf.ai/docs) |
 | **CLI & Skills Guide** | [agents.asksurf.ai/docs/cli/introduction](https://agents.asksurf.ai/docs/cli/introduction) |
 | **Data API (83 endpoints)** | [agents.asksurf.ai/docs/data-api/overview](https://agents.asksurf.ai/docs/data-api/overview) |
-| **Onchain SQL (58 tables)** | [agents.asksurf.ai/docs/data-catalog/overview](https://agents.asksurf.ai/docs/data-catalog/overview) |
+| **Onchain SQL (cataloged tables)** | [agents.asksurf.ai/docs/data-catalog/overview](https://agents.asksurf.ai/docs/data-catalog/overview) |
 
 ## How It Works
 
