@@ -1,6 +1,6 @@
 # surf-skills — Agent Skills for the Surf Data Platform
 
-Give your AI coding agent direct access to crypto market data, wallet intelligence, social analytics, prediction markets, and on-chain data — across 40+ blockchains and 200+ data sources.
+Give your AI coding agent direct access to crypto market data, wallet intelligence, prediction markets, and on-chain data — across 40+ blockchains and 200+ data sources.
 
 > **[Full Documentation →](https://agents.asksurf.ai/docs)**
 
@@ -31,7 +31,6 @@ Once installed, your agent can fetch live crypto data just by you asking for it 
 - "What's the price of ETH?"
 - "Show me the top 10 wallets holding AAVE"
 - "Get Polymarket odds for the next US election"
-- "Find trending crypto projects on Twitter"
 - "What's the TVL of Uniswap on Arbitrum?"
 - "Show me BTC funding rates across exchanges"
 
@@ -45,7 +44,6 @@ The skill teaches the agent to discover endpoints, use correct parameters, and r
 | **Exchange** | Order books, candlesticks, funding rates, long/short ratios, perpetual contracts |
 | **Matching** | CEX-DEX matching, market matching |
 | **Wallet** | Balances, transfers, DeFi positions, net worth, wallet labels |
-| **Social** | Twitter/X profiles, posts, followers, mindshare, sentiment, smart followers |
 | **Token** | Holders, DEX trades, transfers, unlock schedules, tokenomics |
 | **Project** | Profiles, DeFi TVL, protocol metrics, DeFi rankings |
 | **Prediction Markets** | Polymarket & Kalshi — markets, trades, prices, volume, open interest, rankings |
@@ -67,7 +65,7 @@ surf market-price --help                     # Full params and enums
 # Fetch data
 surf market-price --symbol BTC -o json -f body.data
 surf wallet-detail --address 0x... -o json -f body.data
-surf social-user --handle vitalikbuterin -o json -f body.data
+surf project-detail --q uniswap -o json -f body.data
 
 # On-chain SQL
 echo '{"sql":"SELECT project, sum(amount_usd) FROM agent.ethereum_dex_trades WHERE block_date = today() - 1 GROUP BY project ORDER BY 2 DESC LIMIT 10"}' | surf onchain-sql
@@ -83,7 +81,7 @@ echo '{"sql":"SELECT dataset, coverage_state, complete_through_block, semantic_c
 |----------|------|
 | **Full Docs** | [agents.asksurf.ai/docs](https://agents.asksurf.ai/docs) |
 | **CLI & Skills Guide** | [agents.asksurf.ai/docs/cli/introduction](https://agents.asksurf.ai/docs/cli/introduction) |
-| **Data API (83 endpoints)** | [agents.asksurf.ai/docs/data-api/overview](https://agents.asksurf.ai/docs/data-api/overview) |
+| **Data API (70 endpoints)** | [agents.asksurf.ai/docs/data-api/overview](https://agents.asksurf.ai/docs/data-api/overview) |
 | **Onchain SQL (cataloged tables)** | [agents.asksurf.ai/docs/data-catalog/overview](https://agents.asksurf.ai/docs/data-catalog/overview) |
 
 ## How It Works

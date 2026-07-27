@@ -8,7 +8,7 @@ Each Surf API call costs credits. The cost depends on the endpoint's data source
 
 | Tier | Credits | Endpoints |
 |------|---------|-----------|
-| **Light** | 1 cr | social, news, web, fund, exchange, project (search/events/detail), search-airdrop |
+| **Light** | 1 cr | news, web, fund, exchange, project (search/events/detail), search-airdrop |
 | **Standard** | 2 cr | market (price/futures/options/etf/indicators/liquidation/top), token (holders/transfers), wallet (detail/transfers/history/protocols/net-worth/chains), project (metrics/top), onchain (tx) |
 | **Heavy** | 4 cr | wallet (search/label-batch/approvals), token (dex-trades), onchain (bridge-ranking/yield-ranking/query/sql/schema), polymarket, prediction-market, kalshi, matching-market, PM intelligence |
 | **Free** | 0 cr | database operations (billed separately by compute time) |
@@ -24,7 +24,6 @@ Each Surf API call costs credits. The cost depends on the endpoint's data source
 
 | Domain | Endpoints |
 |--------|-----------|
-| Social | search, tweets, user, user-posts, mindshare, mindshare-top, detail, smart-follower-history, search-people, user-following, user-followers, user-replies, tweet-replies |
 | News | search, feed, ai-detail |
 | Web | search, fetch |
 | Fund | detail, portfolio, search, ranking |
