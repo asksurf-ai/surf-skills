@@ -81,7 +81,7 @@ echo '{"sql":"SELECT dataset, coverage_state, complete_through_block, semantic_c
 |----------|------|
 | **Full Docs** | [agents.asksurf.ai/docs](https://agents.asksurf.ai/docs) |
 | **CLI & Skills Guide** | [agents.asksurf.ai/docs/cli/introduction](https://agents.asksurf.ai/docs/cli/introduction) |
-| **Data API (70 endpoints)** | [agents.asksurf.ai/docs/data-api/overview](https://agents.asksurf.ai/docs/data-api/overview) |
+| **Data API (100+ endpoints)** | [agents.asksurf.ai/docs/data-api/overview](https://agents.asksurf.ai/docs/data-api/overview) |
 | **Onchain SQL (cataloged tables)** | [agents.asksurf.ai/docs/data-catalog/overview](https://agents.asksurf.ai/docs/data-catalog/overview) |
 
 ## How It Works
