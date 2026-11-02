@@ -70,6 +70,12 @@ surf project-detail --q uniswap -o json -f body.data
 # On-chain SQL
 echo '{"sql":"SELECT project, sum(amount_usd) FROM agent.ethereum_dex_trades WHERE block_date = today() - 1 GROUP BY project ORDER BY 2 DESC LIMIT 10"}' | surf onchain-sql
 
+# Heavy SQL: async job (sync has a 30s budget; joins/multi-table scans require this)
+echo '{"sql":"SELECT ..."}' | surf onchain-sql --prefer respond-async
+echo '{"sql":"SELECT ..."}' | surf onchain-sql-job-create   # or create explicitly
+surf onchain-sql-job-get <job_id>                           # poll until terminal
+surf onchain-sql-job-results <job_id> --format json         # fetched result
+
 # Robinhood Chain catalog and historical coverage
 surf catalog search robinhood
 echo '{"sql":"SELECT dataset, coverage_state, complete_through_block, semantic_coverage FROM agent.robinhood_dataset_coverage ORDER BY dataset"}' | surf onchain-sql
