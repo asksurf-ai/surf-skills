@@ -247,6 +247,16 @@ Essential rules (even if you skip the catalog):
 - **Max 365-day window on large tables** — a `block_date` window wider than 365 days is rejected up front: `queries on large tables (…) are limited to a 365-day block_date window — narrow the range (e.g. block_date >= today() - 30)`. For longer history, run several ≤365-day queries and merge the results yourself.
 - **JOINs and UNIONs: every large table needs its OWN `block_date` filter** — a filter on one table never covers another. Qualify each one (`a.block_date >= today() - 30 AND b.block_date >= today() - 30`); the same applies independently to each UNION branch and each subquery. The rejection reads: `large tables (…) each require their OWN block_date lower-bound filter`.
 
+#### Estimating a query before running it
+
+`surf onchain-sql-preflight` runs `EXPLAIN ESTIMATE` without executing the query. It returns `estimate.{rows,bytes,parts,marks,by_table}`, the enforced `budget`, and machine-readable `warnings[]`. It costs the same 4 credits as a SQL call, so use it selectively — when a query keeps bouncing off `SYNC_QUERY_REQUIRES_ASYNC`, not before every query.
+
+```bash
+echo '{"sql":"SELECT ..."}' | surf onchain-sql-preflight
+```
+
+Read `data.accepted`, not the HTTP status: a rejected plan still returns `200` with `accepted: false` and warnings whose `severity` is `error`. Each warning carries a `recommended_action` that preserves the query semantics.
+
 #### Long queries: use the async job API
 
 The synchronous call has a hard 30s budget. Submit a durable job instead when the query joins tables, scans more than one table, wraps an address column in `lower()`, combines `from`/`to` predicates with OR, or repeats role UNIONs — the API rejects those from the sync path with `SYNC_QUERY_REQUIRES_ASYNC`. Do the same when you expect the scan to run past ~25s, or when sync returns `QUERY_TIMEOUT` (408) or `SQL_SYNC_COOLDOWN` (429).
