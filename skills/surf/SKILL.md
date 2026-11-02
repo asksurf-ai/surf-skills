@@ -222,7 +222,7 @@ Things `--help` won't tell you:
 - **Never use `-q` for search.** `-q` is a global flag (not the `--q` search parameter). Always use `--q` (double dash).
 - **Chains require canonical long-form names.** `eth` → `ethereum`, `sol` → `solana`, `matic` → `polygon`, `avax` → `avalanche`, `arb` → `arbitrum`, `op` → `optimism`, `ftm` → `fantom`, `bnb` → `bsc`.
 - **DEX token price candles use `dex-token-price`.** For OHLCV bars by token contract address, use `surf dex-token-price --chain <chain> --address <contract> --interval <interval> --time-range <range>`. If the user provides only an exact ticker, resolve ranked `(chain, address)` candidates with `search-token` first; never rank those candidates by `volume_usd`, which always returns `0`. Do not use `token-dex-trades` for candles; it returns raw swaps. Do not use `market-price` when the user gives a contract address or asks for DEX-native coverage. If `dex-token-price` is not present after `surf sync`, say the current synced API spec does not expose that command instead of silently substituting a different endpoint.
-- **POST endpoints (`onchain-sql`, `onchain-structured-query`) take JSON on stdin.** Pipe JSON: `echo '{"sql":"SELECT ..."}' | surf onchain-sql`. See "On-Chain SQL" section below for required steps before writing queries.
+- **POST endpoints (`onchain-sql`, `onchain-structured-query`) take JSON on stdin.** Pipe JSON: `echo '{"sql":"SELECT ..."}' | surf onchain-sql`. Add `--prefer respond-async` when the query is too heavy for the 30s sync budget. See "On-Chain SQL" section below for required steps before writing queries.
 - **`market-onchain-indicator` uses `--metric`, not `--indicator`.** The flag is `--metric nupl`, not `--indicator nupl`. Also, metrics like `mvrv`, `sopr`, `nupl`, `puell-multiple` only support `--symbol BTC` — other symbols return empty data.
 - **`hyperliquid-fills`: for full trade history or PnL reconstruction, use `--order asc --from <start-date>` and follow `meta.next_cursor`.** The ascending walk returns every fill in the window with no result cap — keep passing the returned `meta.next_cursor` back as `--cursor` (only `--symbol`/`--limit` may accompany it) until `next_cursor` comes back empty. With `--symbol`, a page can be short or even empty while the cursor still advances — keep walking; `meta.empty_reason` explains. The default newest-first mode reaches only a recent window (roughly the last 2000 fills): right for "latest trades" views, silently incomplete for accounting — never sum PnL from it on an active wallet.
 - **`search-fund` and `search-fundraising` answer different questions.** Use `search-fund` for VC or fund profiles and portfolios. Use `search-fundraising` for project fundraising events, investments, raises, ICOs, token sales, and chronological fundraising timelines.
@@ -283,8 +283,27 @@ Example:
 echo '{"sql":"SELECT dataset, coverage_state, complete_through_block, raw_live_tip, internal_gaps, semantic_coverage FROM agent.robinhood_dataset_coverage ORDER BY dataset"}' | surf onchain-sql
 ```
 
+### Long queries: use the async job API
+
+The synchronous call has a hard 30s budget. Submit a durable job instead when the query joins tables, scans more than one table, wraps an address column in `lower()`, combines `from`/`to` predicates with OR, or repeats role UNIONs — the API rejects those from the sync path with `SYNC_QUERY_REQUIRES_ASYNC`. Do the same when you expect the scan to run past ~25s, or when sync returns `QUERY_TIMEOUT` (408) or `SQL_SYNC_COOLDOWN` (429).
+
+```bash
+echo '{"sql":"SELECT ..."}' | surf onchain-sql-job-create
+surf onchain-sql-job-get <job_id>              # poll until terminal
+surf onchain-sql-job-results <job_id> --format json
+```
+
+Or stay in one call and ask inline:
+
+```bash
+echo '{"sql":"SELECT ..."}' | surf onchain-sql --prefer respond-async
+```
+
+Job creation is billed once; polling and result download are free. Results are retained for 24 hours. `HTTP 202` means accepted, not finished — keep polling `onchain-sql-job-get` until the status is terminal, then fetch `onchain-sql-job-results`.
+
 ### Troubleshooting
 
+- **SQL codes mean "use async", not "give up".** `SYNC_QUERY_REQUIRES_ASYNC` (422), `QUERY_TIMEOUT` (408), `SQL_SYNC_COOLDOWN` (429), `SQL_QUERY_IN_FLIGHT` (429), `SYNC_PREFLIGHT_UNAVAILABLE` (503), and `ADMISSION_UNAVAILABLE` (503) are all recoverable by resubmitting the same JSON as a durable job — see [Long queries](#long-queries-use-the-async-job-api).
 - **Unknown command / unknown flag / enum validation error** — all three mean you're guessing from a mental model that doesn't match the actual surface. Don't retry with another guess; go look. Run `surf list-operations` to find the right command, then `surf <command> --help` for the exact flag names, types, casing, and allowed enum values. Copy from `--help` verbatim — flag shapes vary per endpoint, so never reuse a name from another command.
 - **Empty results**: Check `--help` for required params and valid enum values.
 - **Exit code 4**: API or transport error. The JSON error envelope is always on stdout (regardless of output format), with `error.code` and `error.message`. Check `error.code` — see Authentication section below.
@@ -381,6 +400,10 @@ market-price              →  GET /market/price
 dex-token-price           →  GET /dex/token/price
 exchange-funding-history  →  GET /exchange/funding-history
 onchain-sql               →  POST /onchain/sql
+onchain-sql-job-create    →  POST /onchain/sql/jobs
+onchain-sql-job-get       →  GET /onchain/sql/jobs/{job_id}
+onchain-sql-job-results   →  GET /onchain/sql/jobs/{job_id}/results
+onchain-sql-job-cancel    →  DELETE /onchain/sql/jobs/{job_id}
 ```
 
 Known domain prefixes: `market`, `wallet`, `token`, `dex`, `project`, `fund`, `onchain`, `news`, `exchange`, `search`, `web`, `kalshi`, `polymarket`, `prediction-market`.
