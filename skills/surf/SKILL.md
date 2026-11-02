@@ -263,7 +263,7 @@ Or stay in one call and ask inline:
 echo '{"sql":"SELECT ..."}' | surf onchain-sql --prefer respond-async
 ```
 
-Job creation is billed once; polling and result download are free. Results are retained for 24 hours. `HTTP 202` means accepted, not finished — keep polling `onchain-sql-job-get` until the status is terminal, then fetch `onchain-sql-job-results`.
+Creating the job is the billed step (same price as a sync SQL call); polling and result download are free. Results are retained for 24 hours. `HTTP 202` means accepted, not finished — keep polling `onchain-sql-job-get` until the status is terminal, then fetch `onchain-sql-job-results`.
 
 #### Robinhood Chain
 
