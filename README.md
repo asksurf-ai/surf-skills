@@ -14,7 +14,9 @@ Works with any agent that supports the [skills protocol](https://skills.sh) — 
 
 ### Prerequisites
 
-Install the Surf CLI following the guide at [agents.asksurf.ai/docs/cli/introduction](https://agents.asksurf.ai/docs/cli/introduction)
+Install the Surf CLI following the guide at [github.com/asksurf-ai/surf-cli](https://github.com/asksurf-ai/surf-cli#install)
+
+If `surf --version` shows v1.0.11 or older, reinstall the CLI from there: the old update host is being retired.
 
 No API key required to start — you get 30 free credits daily. For full access, sign up at [agents.asksurf.ai](https://agents.asksurf.ai) and run:
 
